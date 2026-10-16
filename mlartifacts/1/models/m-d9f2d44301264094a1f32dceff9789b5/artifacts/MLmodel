@@ -1,0 +1,20 @@
+artifact_path: mlflow-artifacts:/1/models/m-d9f2d44301264094a1f32dceff9789b5/artifacts
+flavors:
+  python_function:
+    data: model.statsmodels
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.statsmodels
+    python_version: 3.14.0
+  statsmodels:
+    code: null
+    data: model.statsmodels
+    statsmodels_version: 0.15.0
+mlflow_version: 3.17.1
+model_id: m-d9f2d44301264094a1f32dceff9789b5
+model_size_bytes: 4704591
+model_uuid: m-d9f2d44301264094a1f32dceff9789b5
+prompts: null
+run_id: 0e998c2448aa48e18b503b14a33616e4
+utc_time_created: '2026-10-16 01:14:31.706142'
