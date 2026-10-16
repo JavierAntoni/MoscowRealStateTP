@@ -1,0 +1,171 @@
+feature,family,coefficient,abs_coefficient,is_zero,rank_abs
+num__total_area,numeric_scaled,0.0,0.0,True,1
+num__rooms,numeric_scaled,0.0,0.0,True,2
+num__floor,numeric_scaled,0.0,0.0,True,3
+num__total_floors,numeric_scaled,0.0,0.0,True,4
+num__building_year,numeric_scaled,0.0,0.0,True,5
+num__deposit_months,numeric_scaled,0.0,0.0,True,6
+num__to_center_km,numeric_scaled,0.0,0.0,True,7
+num__lat,numeric_scaled,0.0,0.0,True,8
+num__lon,numeric_scaled,0.0,0.0,True,9
+num__posting_year,numeric_scaled,0.0,0.0,True,10
+num__posting_month_sin,numeric_scaled,0.0,0.0,True,11
+num__posting_month_cos,numeric_scaled,0.0,0.0,True,12
+num__building_age,numeric_scaled,0.0,0.0,True,13
+num__area_per_room,numeric_scaled,0.0,0.0,True,14
+num__floor_ratio,numeric_scaled,0.0,0.0,True,15
+bin__furnished,binary,0.0,0.0,True,16
+bin__pets_allowed,binary,0.0,0.0,True,17
+bin__is_presale_or_new,binary,0.0,0.0,True,18
+bin__is_first_floor,binary,0.0,0.0,True,19
+bin__is_top_floor,binary,0.0,0.0,True,20
+cat__okrug_CAO,ohe_okrug,0.0,0.0,True,21
+cat__okrug_NAO,ohe_okrug,0.0,0.0,True,22
+cat__okrug_SAO,ohe_okrug,0.0,0.0,True,23
+cat__okrug_SVAO,ohe_okrug,0.0,0.0,True,24
+cat__okrug_SZAO,ohe_okrug,0.0,0.0,True,25
+cat__okrug_TAO,ohe_okrug,0.0,0.0,True,26
+cat__okrug_VAO,ohe_okrug,0.0,0.0,True,27
+cat__okrug_YuAO,ohe_okrug,0.0,0.0,True,28
+cat__okrug_YuZAO,ohe_okrug,0.0,0.0,True,29
+cat__okrug_ZAO,ohe_okrug,0.0,0.0,True,30
+cat__okrug_ZelAO,ohe_okrug,0.0,0.0,True,31
+cat__district_Aeroport,ohe_district,0.0,0.0,True,32
+cat__district_Akademichesky,ohe_district,0.0,0.0,True,33
+cat__district_Alekseevsky,ohe_district,0.0,0.0,True,34
+cat__district_Altufyevsky,ohe_district,0.0,0.0,True,35
+cat__district_Arbat,ohe_district,0.0,0.0,True,36
+cat__district_Babushkinsky,ohe_district,0.0,0.0,True,37
+cat__district_Basmanny,ohe_district,0.0,0.0,True,38
+cat__district_Begovoy,ohe_district,0.0,0.0,True,39
+cat__district_Beskudnikovsky,ohe_district,0.0,0.0,True,40
+cat__district_Bibirevo,ohe_district,0.0,0.0,True,41
+cat__district_Biryulyovo Vostochnoye,ohe_district,0.0,0.0,True,42
+cat__district_Biryulyovo Zapadnoye,ohe_district,0.0,0.0,True,43
+cat__district_Bogorodskoye,ohe_district,0.0,0.0,True,44
+cat__district_Brateyevo,ohe_district,0.0,0.0,True,45
+cat__district_Butyrsky,ohe_district,0.0,0.0,True,46
+cat__district_Chertanovo Severnoye,ohe_district,0.0,0.0,True,47
+cat__district_Chertanovo Tsentralnoye,ohe_district,0.0,0.0,True,48
+cat__district_Chertanovo Yuzhnoye,ohe_district,0.0,0.0,True,49
+cat__district_Cheryomushki,ohe_district,0.0,0.0,True,50
+cat__district_Danilovsky,ohe_district,0.0,0.0,True,51
+cat__district_Desyonovskoye,ohe_district,0.0,0.0,True,52
+cat__district_Dmitrovsky,ohe_district,0.0,0.0,True,53
+cat__district_Donskoy,ohe_district,0.0,0.0,True,54
+cat__district_Dorogomilovo,ohe_district,0.0,0.0,True,55
+cat__district_Fili-Davydkovo,ohe_district,0.0,0.0,True,56
+cat__district_Filimonkovskoye,ohe_district,0.0,0.0,True,57
+cat__district_Filyovsky Park,ohe_district,0.0,0.0,True,58
+cat__district_Gagarinsky,ohe_district,0.0,0.0,True,59
+cat__district_Golovinsky,ohe_district,0.0,0.0,True,60
+cat__district_Golyanovo,ohe_district,0.0,0.0,True,61
+cat__district_Ivanovskoye,ohe_district,0.0,0.0,True,62
+cat__district_Izmaylovo,ohe_district,0.0,0.0,True,63
+cat__district_Khamovniki,ohe_district,0.0,0.0,True,64
+cat__district_Khoroshyovo-Mnyovniki,ohe_district,0.0,0.0,True,65
+cat__district_Khoroshyovsky,ohe_district,0.0,0.0,True,66
+cat__district_Khovrino,ohe_district,0.0,0.0,True,67
+cat__district_Kievsky,ohe_district,0.0,0.0,True,68
+cat__district_Klyonovskoye,ohe_district,0.0,0.0,True,69
+cat__district_Kokoshkino,ohe_district,0.0,0.0,True,70
+cat__district_Konkovo,ohe_district,0.0,0.0,True,71
+cat__district_Koptevo,ohe_district,0.0,0.0,True,72
+cat__district_Kosino-Ukhtomsky,ohe_district,0.0,0.0,True,73
+cat__district_Kotlovka,ohe_district,0.0,0.0,True,74
+cat__district_Krasnopakhorskoye,ohe_district,0.0,0.0,True,75
+cat__district_Krasnoselsky,ohe_district,0.0,0.0,True,76
+cat__district_Krylatskoye,ohe_district,0.0,0.0,True,77
+cat__district_Kuntsevo,ohe_district,0.0,0.0,True,78
+cat__district_Kurkino,ohe_district,0.0,0.0,True,79
+cat__district_Levoberezhny,ohe_district,0.0,0.0,True,80
+cat__district_Lianozovo,ohe_district,0.0,0.0,True,81
+cat__district_Lomonosovsky,ohe_district,0.0,0.0,True,82
+cat__district_Losinoostrovsky,ohe_district,0.0,0.0,True,83
+cat__district_Marfino,ohe_district,0.0,0.0,True,84
+cat__district_Marushkinskoye,ohe_district,0.0,0.0,True,85
+cat__district_Maryina Roshcha,ohe_district,0.0,0.0,True,86
+cat__district_Meshchansky,ohe_district,0.0,0.0,True,87
+cat__district_Metrogorodok,ohe_district,0.0,0.0,True,88
+cat__district_Mikhaylovo-Yartsevskoye,ohe_district,0.0,0.0,True,89
+cat__district_Mitino,ohe_district,0.0,0.0,True,90
+cat__district_Molzhaninovsky,ohe_district,0.0,0.0,True,91
+cat__district_Moskovsky,ohe_district,0.0,0.0,True,92
+cat__district_Moskvorechye-Saburovo,ohe_district,0.0,0.0,True,93
+cat__district_Mosrentgen,ohe_district,0.0,0.0,True,94
+cat__district_Mozhaysky,ohe_district,0.0,0.0,True,95
+cat__district_Nagatino-Sadovniki,ohe_district,0.0,0.0,True,96
+cat__district_Nagatinsky Zaton,ohe_district,0.0,0.0,True,97
+cat__district_Nagorny,ohe_district,0.0,0.0,True,98
+cat__district_Novo-Peredelkino,ohe_district,0.0,0.0,True,99
+cat__district_Novofyodorovskoye,ohe_district,0.0,0.0,True,100
+cat__district_Novogireyevo,ohe_district,0.0,0.0,True,101
+cat__district_Novokosino,ohe_district,0.0,0.0,True,102
+cat__district_Obruchevsky,ohe_district,0.0,0.0,True,103
+cat__district_Ochakovo-Matveyevskoye,ohe_district,0.0,0.0,True,104
+cat__district_Orekhovo-Borisovo Severnoye,ohe_district,0.0,0.0,True,105
+cat__district_Orekhovo-Borisovo Yuzhnoye,ohe_district,0.0,0.0,True,106
+cat__district_Ostankinsky,ohe_district,0.0,0.0,True,107
+cat__district_Otradnoye,ohe_district,0.0,0.0,True,108
+cat__district_Perovo,ohe_district,0.0,0.0,True,109
+cat__district_Pervomayskoye,ohe_district,0.0,0.0,True,110
+cat__district_Pokrovskoye-Streshnevo,ohe_district,0.0,0.0,True,111
+cat__district_Preobrazhenskoye,ohe_district,0.0,0.0,True,112
+cat__district_Presnensky,ohe_district,0.0,0.0,True,113
+cat__district_Prospekt Vernadskogo,ohe_district,0.0,0.0,True,114
+cat__district_Ramenki,ohe_district,0.0,0.0,True,115
+cat__district_Rogovskoye,ohe_district,0.0,0.0,True,116
+cat__district_Rostokino,ohe_district,0.0,0.0,True,117
+cat__district_Ryazanovskoye,ohe_district,0.0,0.0,True,118
+cat__district_Savyolovsky,ohe_district,0.0,0.0,True,119
+cat__district_Severnoye Butovo,ohe_district,0.0,0.0,True,120
+cat__district_Severnoye Izmaylovo,ohe_district,0.0,0.0,True,121
+cat__district_Severnoye Medvedkovo,ohe_district,0.0,0.0,True,122
+cat__district_Severnoye Tushino,ohe_district,0.0,0.0,True,123
+cat__district_Severny,ohe_district,0.0,0.0,True,124
+cat__district_Shchapovskoye,ohe_district,0.0,0.0,True,125
+cat__district_Shcherbinka,ohe_district,0.0,0.0,True,126
+cat__district_Shchukino,ohe_district,0.0,0.0,True,127
+cat__district_Sokol,ohe_district,0.0,0.0,True,128
+cat__district_Sokolinaya Gora,ohe_district,0.0,0.0,True,129
+cat__district_Sokolniki,ohe_district,0.0,0.0,True,130
+cat__district_Solntsevo,ohe_district,0.0,0.0,True,131
+cat__district_Sosenskoye,ohe_district,0.0,0.0,True,132
+cat__district_Strogino,ohe_district,0.0,0.0,True,133
+cat__district_Sviblovo,ohe_district,0.0,0.0,True,134
+cat__district_Tagansky,ohe_district,0.0,0.0,True,135
+cat__district_Timiryazevsky,ohe_district,0.0,0.0,True,136
+cat__district_Troitsk,ohe_district,0.0,0.0,True,137
+cat__district_Troparyovo-Nikulino,ohe_district,0.0,0.0,True,138
+cat__district_Tsaritsyno,ohe_district,0.0,0.0,True,139
+cat__district_Tverskoy,ohe_district,0.0,0.0,True,140
+cat__district_Tyoply Stan,ohe_district,0.0,0.0,True,141
+cat__district_Veshnyaki,ohe_district,0.0,0.0,True,142
+cat__district_Vnukovo,ohe_district,0.0,0.0,True,143
+cat__district_Vnukovskoye,ohe_district,0.0,0.0,True,144
+cat__district_Voronovskoye,ohe_district,0.0,0.0,True,145
+cat__district_Voskresenskoye,ohe_district,0.0,0.0,True,146
+cat__district_Vostochnoye Izmaylovo,ohe_district,0.0,0.0,True,147
+cat__district_Vostochny,ohe_district,0.0,0.0,True,148
+cat__district_Voykovsky,ohe_district,0.0,0.0,True,149
+cat__district_Yakimanka,ohe_district,0.0,0.0,True,150
+cat__district_Yaroslavsky,ohe_district,0.0,0.0,True,151
+cat__district_Yasenevo,ohe_district,0.0,0.0,True,152
+cat__district_Yuzhnoye Butovo,ohe_district,0.0,0.0,True,153
+cat__district_Yuzhnoye Medvedkovo,ohe_district,0.0,0.0,True,154
+cat__district_Yuzhnoye Tushino,ohe_district,0.0,0.0,True,155
+cat__district_Zamoskvorechye,ohe_district,0.0,0.0,True,156
+cat__district_Zapadnoye Degunino,ohe_district,0.0,0.0,True,157
+cat__district_Zelenograd,ohe_district,0.0,0.0,True,158
+cat__district_Zyablikovo,ohe_district,0.0,0.0,True,159
+cat__district_Zyuzino,ohe_district,0.0,0.0,True,160
+cat__building_type_brick,ohe_building_type,0.0,0.0,True,161
+cat__building_type_khrushchev,ohe_building_type,0.0,0.0,True,162
+cat__building_type_modern_panel,ohe_building_type,0.0,0.0,True,163
+cat__building_type_monolith,ohe_building_type,0.0,0.0,True,164
+cat__building_type_panel,ohe_building_type,0.0,0.0,True,165
+cat__building_type_stalin,ohe_building_type,0.0,0.0,True,166
+cat__renovation_cosmetic,ohe_renovation,0.0,0.0,True,167
+cat__renovation_designer,ohe_renovation,0.0,0.0,True,168
+cat__renovation_euro,ohe_renovation,0.0,0.0,True,169
+cat__renovation_no_renovation,ohe_renovation,0.0,0.0,True,170

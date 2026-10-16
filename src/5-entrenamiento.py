@@ -59,6 +59,8 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import ParameterGrid
 
+import sys
+
 
 LOGGER = logging.getLogger("05_training_evaluation")
 
@@ -1029,9 +1031,9 @@ def build_training_evaluation_report(
 
 ## 1. Resumen Ejecutivo
 
-En esta quinta etapa del proyecto se ejecutó el protocolo completo de entrenamiento, ajuste de hiperparámetros sobre partición temporal de validación, auditoría algebraica de coeficientes y evaluación final *holdout* (`Test` 2025–2026) para los 5 modelos candidatos definidos en `models/model_candidates.json`:
+En esta quinta etapa del proyecto se ejecutó el protocolo completo de entrenamiento, ajuste de hiperparámetros sobre partición temporal de validación, auditoría algebraica de coeficientes y evaluación final *holdout* (`Test` 2025-2026) para los 5 modelos candidatos definidos en `models/model_candidates.json`:
 
-1. **Superioridad del régimen logarítmico (`log1p_rub` vs `raw_rub`):** Entrenar sobre `monthly_rent_rub_log1p` ($\ln(1 + y)$) y retransformar a rublos mediante $\exp(\hat{z}) - 1$ mejora sustancialmente la generalización en `Validation` y `Test` frente al ajuste directo en rublos crudos (`raw_rub`), al corregir la asimetría positiva original (`1.821` $\to$ `-0.133`) y atenuar el apalancamiento de los alquileres *premium* de la cola derecha.
+1. **Superioridad del régimen logarítmico (`log1p_rub` vs `raw_rub`):** Entrenar sobre `monthly_rent_rub_log1p` ($\ln(1 + y)$) y retransformar a rublos mediante $\exp(\hat$\exp(\hat{{z}}) - 1$ mejora sustancialmente la generalización en `Validation` y `Test` frente al ajuste directo en rublos crudos (`raw_rub`), al corregir la asimetría positiva original (`1.821` $\to$ `-0.133`) y atenuar el apalancamiento de los alquileres *premium* de la cola derecha.
 2. **Desempeño del Modelo Principal Académico (`LinearRegression`):** En su mejor régimen (`{primary_info['target_mode']}`), `LinearRegression` alcanza en `Validation` un `RMSE` de **`{primary_info['val_rmse_rub']:.2f}` RUB** (`MAE = {primary_info['val_mae_rub']:.2f}` RUB, `R² = {primary_info['val_r2_rub']:.4f}`) y en `Test` un `RMSE` de **`{primary_info['test_rmse_rub']:.2f}` RUB** (`MAE = {primary_info['test_mae_rub']:.2f}` RUB, `R² = {primary_info['test_r2_rub']:.4f}`), superando ampliamente a `DummyRegressor`.
 3. **Comparación con Alternativas Regularizadas (`Ridge`, `Lasso`, `ElasticNet`):** El mejor modelo global en validación es **`{best_info['model_name']}` (`{best_info['target_mode']}`)** con hiperparámetros `{best_info['best_params']}`, logrando `Val RMSE = {best_info['val_rmse_rub']:.2f} RUB` y `Test RMSE = {best_info['test_rmse_rub']:.2f} RUB`. Mientras que la capacidad predictiva dentro del subespacio columna de $X$ es cercana entre OLS y las variantes regularizadas, la diferencia fundamental radica en la **estabilidad numérica del vector de coeficientes $\hat{{\beta}}$**.
 
@@ -1193,6 +1195,22 @@ def run_training_evaluation(
     y_val = pd.read_csv(root / "data/processed/y_val.csv")
     y_test = pd.read_csv(root / "data/processed/y_test.csv")
 
+    preprocessing_path = Path(__file__).resolve().parent / "3-preprocesamiento.py"
+
+    spec = importlib.util.spec_from_file_location(
+        "preprocesamiento",
+        preprocessing_path
+    )
+
+    preprocesamiento = importlib.util.module_from_spec(spec)
+    sys.modules["preprocesamiento"] = preprocesamiento
+    spec.loader.exec_module(preprocesamiento)
+
+    DomainFeatureEngineer = preprocesamiento.DomainFeatureEngineer
+
+    # Compatibilidad con el archivo joblib antiguo:
+    setattr(sys.modules["__main__"], "DomainFeatureEngineer", DomainFeatureEngineer)
+
     preprocessor_linear = joblib.load(root / "models/preprocessing/preprocessor_linear.joblib")
     target_log_transformer = joblib.load(
         root / "models/preprocessing/target_log_transformer.joblib"
@@ -1218,11 +1236,12 @@ def run_training_evaluation(
         matrix_conditioning["condition_number"],
     )
 
-    # 4. Configuración de MLflow local en ./mlruns
-    mlruns_dir = (root / "mlruns").resolve()
-    mlruns_dir.mkdir(parents=True, exist_ok=True)
-    tracking_uri = mlruns_dir.as_uri()
+    # 4. Configuración de MLflow local con SQLite
+    mlflow_db = (root / "mlflow.db").resolve()
+    tracking_uri = f"sqlite:///{mlflow_db.as_posix()}"
+
     mlflow.set_tracking_uri(tracking_uri)
+
     experiment = mlflow.set_experiment(experiment_name)
 
     while mlflow.active_run() is not None:

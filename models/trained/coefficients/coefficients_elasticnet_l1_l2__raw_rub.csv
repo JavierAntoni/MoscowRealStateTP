@@ -1,0 +1,171 @@
+feature,family,coefficient,abs_coefficient,is_zero,rank_abs
+cat__okrug_CAO,ohe_okrug,50911.046883438474,50911.046883438474,False,1
+cat__district_Dorogomilovo,ohe_district,25864.315303997337,25864.315303997337,False,2
+cat__okrug_TAO,ohe_okrug,-24996.874332010462,24996.874332010462,False,3
+cat__district_Tverskoy,ohe_district,23986.26139402796,23986.26139402796,False,4
+cat__district_Strogino,ohe_district,23562.008559321654,23562.008559321654,False,5
+cat__district_Prospekt Vernadskogo,ohe_district,20720.80205430491,20720.80205430491,False,6
+cat__district_Arbat,ohe_district,19923.77515601733,19923.77515601733,False,7
+cat__district_Presnensky,ohe_district,19564.160101906058,19564.160101906058,False,8
+cat__district_Lomonosovsky,ohe_district,18461.60202925149,18461.60202925149,False,9
+cat__district_Sokol,ohe_district,18330.80463827798,18330.80463827798,False,10
+cat__district_Khamovniki,ohe_district,18067.04030379665,18067.04030379665,False,11
+cat__district_Vnukovo,ohe_district,-17547.270487201597,17547.270487201597,False,12
+cat__district_Tagansky,ohe_district,-17358.002631466115,17358.002631466115,False,13
+cat__district_Yuzhnoye Butovo,ohe_district,-17231.499932949122,17231.499932949122,False,14
+num__total_area,numeric_scaled,16915.989091687345,16915.989091687345,False,15
+cat__okrug_NAO,ohe_okrug,-16904.45124134096,16904.45124134096,False,16
+cat__district_Novo-Peredelkino,ohe_district,-16848.271685488213,16848.271685488213,False,17
+cat__district_Begovoy,ohe_district,16791.058464176698,16791.058464176698,False,18
+cat__district_Molzhaninovsky,ohe_district,-16724.151756582254,16724.151756582254,False,19
+cat__district_Khoroshyovsky,ohe_district,16500.409273074652,16500.409273074652,False,20
+cat__district_Yakimanka,ohe_district,15454.226849635821,15454.226849635821,False,21
+cat__district_Gagarinsky,ohe_district,14936.67813167253,14936.67813167253,False,22
+cat__district_Preobrazhenskoye,ohe_district,14918.936875883264,14918.936875883264,False,23
+cat__district_Severnoye Butovo,ohe_district,-14028.621849518438,14028.621849518438,False,24
+cat__district_Solntsevo,ohe_district,-13950.723023927174,13950.723023927174,False,25
+cat__district_Cheryomushki,ohe_district,13762.013296049814,13762.013296049814,False,26
+cat__district_Basmanny,ohe_district,-13674.414330047386,13674.414330047386,False,27
+cat__okrug_ZelAO,ohe_okrug,-13487.592531780148,13487.592531780148,False,28
+cat__district_Zelenograd,ohe_district,-13478.43717201167,13478.43717201167,False,29
+cat__district_Yasenevo,ohe_district,13473.82010549769,13473.82010549769,False,30
+cat__district_Donskoy,ohe_district,13343.69223597114,13343.69223597114,False,31
+cat__district_Dmitrovsky,ohe_district,-13005.868472841628,13005.868472841628,False,32
+cat__district_Perovo,ohe_district,12415.91780967392,12415.91780967392,False,33
+cat__district_Troparyovo-Nikulino,ohe_district,12340.056769294528,12340.056769294528,False,34
+cat__renovation_designer,ohe_renovation,12220.760820158652,12220.760820158652,False,35
+cat__district_Krasnoselsky,ohe_district,-11886.940598662866,11886.940598662866,False,36
+cat__district_Sokolniki,ohe_district,11873.525167159967,11873.525167159967,False,37
+cat__district_Severnoye Tushino,ohe_district,-11320.067992967806,11320.067992967806,False,38
+cat__okrug_YuZAO,ohe_okrug,11211.186503939236,11211.186503939236,False,39
+cat__district_Shchukino,ohe_district,10913.915315370165,10913.915315370165,False,40
+cat__district_Khovrino,ohe_district,-10764.508257659201,10764.508257659201,False,41
+cat__district_Nagorny,ohe_district,10638.411554092974,10638.411554092974,False,42
+cat__district_Yuzhnoye Tushino,ohe_district,-10580.48593653147,10580.48593653147,False,43
+cat__okrug_ZAO,ohe_okrug,10487.388225546376,10487.388225546376,False,44
+cat__district_Zapadnoye Degunino,ohe_district,-10461.79641033186,10461.79641033186,False,45
+cat__district_Ostankinsky,ohe_district,10355.570691463956,10355.570691463956,False,46
+cat__district_Beskudnikovsky,ohe_district,-10352.046489599095,10352.046489599095,False,47
+cat__district_Chertanovo Yuzhnoye,ohe_district,10344.788876141643,10344.788876141643,False,48
+cat__district_Vostochny,ohe_district,-10310.796028198285,10310.796028198285,False,49
+cat__renovation_no_renovation,ohe_renovation,-10136.407555113801,10136.407555113801,False,50
+cat__district_Krylatskoye,ohe_district,10010.547531269754,10010.547531269754,False,51
+cat__district_Ramenki,ohe_district,9854.537311306462,9854.537311306462,False,52
+cat__district_Maryina Roshcha,ohe_district,9707.071578313167,9707.071578313167,False,53
+cat__building_type_stalin,ohe_building_type,9669.869372837922,9669.869372837922,False,54
+cat__district_Danilovsky,ohe_district,9458.982751701993,9458.982751701993,False,55
+cat__building_type_khrushchev,ohe_building_type,-8977.632177587027,8977.632177587027,False,56
+cat__district_Veshnyaki,ohe_district,-8661.970463496222,8661.970463496222,False,57
+cat__district_Konkovo,ohe_district,-8526.534263319048,8526.534263319048,False,58
+cat__district_Ochakovo-Matveyevskoye,ohe_district,-8467.654386874241,8467.654386874241,False,59
+cat__district_Mozhaysky,ohe_district,-8422.881492125845,8422.881492125845,False,60
+cat__district_Severny,ohe_district,-8399.945680606132,8399.945680606132,False,61
+cat__okrug_SVAO,ohe_okrug,-8325.351628846918,8325.351628846918,False,62
+cat__district_Kosino-Ukhtomsky,ohe_district,-8297.471436486692,8297.471436486692,False,63
+cat__district_Alekseevsky,ohe_district,8104.875195824966,8104.875195824966,False,64
+cat__district_Tyoply Stan,ohe_district,-7920.560795190097,7920.560795190097,False,65
+cat__district_Zyablikovo,ohe_district,-7762.173886502203,7762.173886502203,False,66
+cat__district_Savyolovsky,ohe_district,7718.435043959318,7718.435043959318,False,67
+num__posting_year,numeric_scaled,7625.958253197973,7625.958253197973,False,68
+cat__district_Orekhovo-Borisovo Severnoye,ohe_district,-7464.155355536286,7464.155355536286,False,69
+cat__district_Biryulyovo Zapadnoye,ohe_district,-7444.761672553058,7444.761672553058,False,70
+cat__district_Biryulyovo Vostochnoye,ohe_district,-7401.448148127413,7401.448148127413,False,71
+cat__district_Meshchansky,ohe_district,-7320.693014241242,7320.693014241242,False,72
+cat__district_Brateyevo,ohe_district,-7257.697446905983,7257.697446905983,False,73
+cat__district_Marushkinskoye,ohe_district,-7084.758137123616,7084.758137123616,False,74
+cat__district_Novokosino,ohe_district,-6778.016695981094,6778.016695981094,False,75
+cat__okrug_SZAO,ohe_okrug,6696.353714506428,6696.353714506428,False,76
+cat__district_Orekhovo-Borisovo Yuzhnoye,ohe_district,-6675.035209371129,6675.035209371129,False,77
+cat__district_Metrogorodok,ohe_district,-6614.814477109104,6614.814477109104,False,78
+cat__district_Filyovsky Park,ohe_district,6585.535784345477,6585.535784345477,False,79
+cat__district_Koptevo,ohe_district,-6561.316354966054,6561.316354966054,False,80
+cat__district_Lianozovo,ohe_district,-6546.998311632601,6546.998311632601,False,81
+cat__district_Kokoshkino,ohe_district,-6378.759358238835,6378.759358238835,False,82
+cat__district_Ivanovskoye,ohe_district,-6375.416387686987,6375.416387686987,False,83
+cat__district_Altufyevsky,ohe_district,-6368.253728778182,6368.253728778182,False,84
+cat__district_Golovinsky,ohe_district,-6266.159955286044,6266.159955286044,False,85
+cat__district_Severnoye Izmaylovo,ohe_district,6248.397366047145,6248.397366047145,False,86
+cat__district_Pokrovskoye-Streshnevo,ohe_district,-6133.125384389364,6133.125384389364,False,87
+cat__okrug_VAO,ohe_okrug,-6030.6121715822155,6030.6121715822155,False,88
+cat__district_Mosrentgen,ohe_district,5947.972445907707,5947.972445907707,False,89
+cat__district_Kurkino,ohe_district,-5905.00173664476,5905.00173664476,False,90
+cat__okrug_YuAO,ohe_okrug,-5782.038960407668,5782.038960407668,False,91
+cat__district_Shchapovskoye,ohe_district,-5543.795674278082,5543.795674278082,False,92
+cat__district_Golyanovo,ohe_district,-5526.908362464272,5526.908362464272,False,93
+cat__district_Voykovsky,ohe_district,5466.694647222956,5466.694647222956,False,94
+cat__district_Butyrsky,ohe_district,5333.085183350251,5333.085183350251,False,95
+cat__district_Chertanovo Tsentralnoye,ohe_district,-5308.598956608921,5308.598956608921,False,96
+cat__renovation_cosmetic,ohe_renovation,-5118.813357346085,5118.813357346085,False,97
+cat__district_Sviblovo,ohe_district,4972.086012368173,4972.086012368173,False,98
+cat__district_Bibirevo,ohe_district,-4832.085412428186,4832.085412428186,False,99
+cat__district_Zyuzino,ohe_district,-4688.620517263561,4688.620517263561,False,100
+cat__building_type_panel,ohe_building_type,-4643.302787347549,4643.302787347549,False,101
+cat__district_Timiryazevsky,ohe_district,4631.065932068062,4631.065932068062,False,102
+cat__district_Novogireyevo,ohe_district,4587.510851697927,4587.510851697927,False,103
+cat__building_type_monolith,ohe_building_type,4472.483024701101,4472.483024701101,False,104
+cat__district_Yaroslavsky,ohe_district,-4350.414622793624,4350.414622793624,False,105
+cat__district_Tsaritsyno,ohe_district,-4339.892684272998,4339.892684272998,False,106
+cat__district_Fili-Davydkovo,ohe_district,4176.93598184103,4176.93598184103,False,107
+cat__district_Filimonkovskoye,ohe_district,-4120.794765178345,4120.794765178345,False,108
+cat__district_Losinoostrovsky,ohe_district,-4109.109490699621,4109.109490699621,False,109
+cat__district_Akademichesky,ohe_district,4078.364707294893,4078.364707294893,False,110
+cat__district_Aeroport,ohe_district,4045.9008335081394,4045.9008335081394,False,111
+cat__district_Zamoskvorechye,ohe_district,3977.3541406389104,3977.3541406389104,False,112
+bin__furnished,binary,3832.4174008705468,3832.4174008705468,False,113
+cat__district_Kuntsevo,ohe_district,-3789.654263388101,3789.654263388101,False,114
+cat__district_Yuzhnoye Medvedkovo,ohe_district,-3719.937306719382,3719.937306719382,False,115
+cat__district_Novofyodorovskoye,ohe_district,-3610.825933261565,3610.825933261565,False,116
+cat__district_Ryazanovskoye,ohe_district,-3534.054363998919,3534.054363998919,False,117
+cat__district_Mikhaylovo-Yartsevskoye,ohe_district,-3493.195551049042,3493.195551049042,False,118
+cat__district_Pervomayskoye,ohe_district,-3379.179657323334,3379.179657323334,False,119
+cat__district_Severnoye Medvedkovo,ohe_district,-3134.352010900947,3134.352010900947,False,120
+cat__district_Voronovskoye,ohe_district,-2926.7331825927336,2926.7331825927336,False,121
+cat__district_Moskvorechye-Saburovo,ohe_district,-2821.4845941042145,2821.4845941042145,False,122
+cat__district_Nagatino-Sadovniki,ohe_district,2761.628287562997,2761.628287562997,False,123
+cat__okrug_SAO,ohe_okrug,-2755.3744762384895,2755.3744762384895,False,124
+cat__district_Otradnoye,ohe_district,-2666.687436860954,2666.687436860954,False,125
+cat__district_Vostochnoye Izmaylovo,ohe_district,-2439.9264884063446,2439.9264884063446,False,126
+cat__renovation_euro,ohe_renovation,2421.9377714082093,2421.9377714082093,False,127
+cat__district_Mitino,ohe_district,-2331.0544490421676,2331.0544490421676,False,128
+cat__district_Levoberezhny,ohe_district,-2320.4999629361364,2320.4999629361364,False,129
+cat__district_Marfino,ohe_district,-2296.1530590635593,2296.1530590635593,False,130
+cat__district_Izmaylovo,ohe_district,2234.988040882724,2234.988040882724,False,131
+cat__district_Chertanovo Severnoye,ohe_district,2186.5551115138264,2186.5551115138264,False,132
+num__lat,numeric_scaled,2173.593588872862,2173.593588872862,False,133
+cat__district_Kievsky,ohe_district,-2011.9398210611712,2011.9398210611712,False,134
+cat__district_Desyonovskoye,ohe_district,-1973.253083202286,1973.253083202286,False,135
+cat__district_Nagatinsky Zaton,ohe_district,1929.0861190127973,1929.0861190127973,False,136
+cat__district_Klyonovskoye,ohe_district,-1927.8790957249657,1927.8790957249657,False,137
+cat__district_Kotlovka,ohe_district,-1730.0676059521913,1730.0676059521913,False,138
+cat__district_Sokolinaya Gora,ohe_district,-1721.6258046331902,1721.6258046331902,False,139
+cat__district_Sosenskoye,ohe_district,1636.5831020226042,1636.5831020226042,False,140
+cat__district_Bogorodskoye,ohe_district,-1635.4787437223622,1635.4787437223622,False,141
+bin__pets_allowed,binary,-1614.5596458773973,1614.5596458773973,False,142
+cat__district_Rogovskoye,ohe_district,-1594.9471196344816,1594.9471196344816,False,143
+cat__district_Khoroshyovo-Mnyovniki,ohe_district,-1564.8374137158457,1564.8374137158457,False,144
+cat__district_Krasnopakhorskoye,ohe_district,-1502.68609124034,1502.68609124034,False,145
+num__posting_month_sin,numeric_scaled,-1406.810755297741,1406.810755297741,False,146
+cat__building_type_brick,ohe_building_type,1310.587291869175,1310.587291869175,False,147
+cat__district_Voskresenskoye,ohe_district,-1303.4832241052336,1303.4832241052336,False,148
+num__posting_month_cos,numeric_scaled,1024.3735200962517,1024.3735200962517,False,149
+cat__district_Rostokino,ohe_district,-1011.4250844778707,1011.4250844778707,False,150
+cat__district_Troitsk,ohe_district,986.0702021134872,986.0702021134872,False,151
+num__rooms,numeric_scaled,-970.2753029789117,970.2753029789117,False,152
+cat__building_type_modern_panel,ohe_building_type,-940.6514027579045,940.6514027579045,False,153
+num__area_per_room,numeric_scaled,-748.0894649391928,748.0894649391928,False,154
+cat__district_Obruchevsky,ohe_district,631.5408654884671,631.5408654884671,False,155
+cat__district_Babushkinsky,ohe_district,488.23115309203456,488.23115309203456,False,156
+cat__district_Vnukovskoye,ohe_district,480.75737385691764,480.75737385691764,False,157
+num__to_center_km,numeric_scaled,-475.8119045106181,475.8119045106181,False,158
+num__floor_ratio,numeric_scaled,439.81407109581505,439.81407109581505,False,159
+cat__district_Shcherbinka,ohe_district,-431.2789024509841,431.2789024509841,False,160
+num__floor,numeric_scaled,-414.06055524714867,414.06055524714867,False,161
+num__total_floors,numeric_scaled,345.8412612634426,345.8412612634426,False,162
+num__building_year,numeric_scaled,335.88435395048333,335.88435395048333,False,163
+num__building_age,numeric_scaled,328.66685887591217,328.66685887591217,False,164
+bin__is_first_floor,binary,315.27088110256045,315.27088110256045,False,165
+bin__is_presale_or_new,binary,313.99819957724515,313.99819957724515,False,166
+num__deposit_months,numeric_scaled,-297.0824046101667,297.0824046101667,False,167
+cat__district_Moskovsky,ohe_district,-282.9433067551035,282.9433067551035,False,168
+bin__is_top_floor,binary,-40.36137932873179,40.36137932873179,False,169
+num__lon,numeric_scaled,33.27816141704744,33.27816141704744,False,170
