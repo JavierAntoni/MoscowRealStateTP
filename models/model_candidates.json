@@ -1,0 +1,435 @@
+{
+  "stage": "04_model_selection",
+  "generated_at": "2026-10-16 15:07:17",
+  "academic_constraint": "La entrega académica exige un modelo final de regresión lineal. Se establece LinearRegression como modelo principal, acompañado por Ridge, Lasso y ElasticNet como alternativas lineales regularizadas y DummyRegressor como referencia básica.",
+  "input_integrity": {
+    "clean_dataset_sha256": "e43378a0de55cdc2320b76f273ef47e1158a41e7fb0d06da0dc34666a5cc1a71",
+    "verified_upstream_files_sha256": {
+      "reports/eda_report.md": "991059b28265d495ca45b721ad67ddb0679d98c3773772b26cbdb300c2e7b704",
+      "reports/preprocessing_report.md": "7240d2990736f63e3237a334a92812c44d6ad6c921340d4d03d6758dc9128559",
+      "models/preprocessing/preprocessing_metadata.json": "271b0e3827af73ef78d8169b3b4674a920fb6a8f1a2c230a693642952a577d2a",
+      "data/processed/X_train_linear.csv": "111dcd6216a6e2b2ad418dd1f5d004e6aec1686ffb1f3416d19e3b96920f9917",
+      "data/processed/X_val_linear.csv": "070ccbb36f6f2612d81fff088499f2e2849c5caa1b3b5516b7dfa75a2b30bc69",
+      "data/processed/X_test_linear.csv": "21d72ab52d0f2567bde0d57b4cd6c71a5b4de78fe07ced6b95a0d7194db0ce45",
+      "data/processed/X_train_tree.csv": "83777efce60d6f3f812f97bd953d2cbc0893ab5c2de94a422a9b0cae9ebc329a",
+      "data/processed/X_val_tree.csv": "4c12d944a5e73f6f86244fdc0a535784c241e376b1daba5954f9ef43486fce03",
+      "data/processed/X_test_tree.csv": "412bfb5c46f3389aa72cdad735dde47498b454aaf90f990fd73e36ff09f8466f",
+      "data/processed/y_train.csv": "fbf8eb503bfca159e7967c4c15cc3febdc5a6edc5a8271e2401b6be8f0bc1145",
+      "data/processed/y_val.csv": "3982d8dd5aa092be5f61cb4bd583f24fd2b412835f7a2d410ac4a34b352b35b6",
+      "data/processed/y_test.csv": "c7dfff904f05fec4963d04e160addfbc0d7f8aa07752ff46f14bf32c146c0f70",
+      "models/preprocessing/preprocessor_linear.joblib": "d7b8dfd31591a87c988684ba248eedf445b8eefcc4a34cd65aaf565d3a094bfa",
+      "models/preprocessing/preprocessor_tree.joblib": "3e5868863774596e8296a431998f2435831b2d99e60b5debdf7b6a24c1674743",
+      "models/preprocessing/target_log_transformer.joblib": "a272c046080c7902d2fc6463b763e7eefe22f1d4b7006758527857e48b9a1940"
+    }
+  },
+  "dataset_and_split_summary": {
+    "n_total": 20000,
+    "n_train": 14009,
+    "n_val": 2991,
+    "n_test": 3000,
+    "pct_train": 70.05,
+    "pct_val": 14.95,
+    "pct_test": 15.0,
+    "train_date_min": "2021-01-01",
+    "train_date_max": "2024-09-06",
+    "val_date_min": "2024-09-07",
+    "val_date_max": "2025-06-29",
+    "test_date_min": "2025-06-30",
+    "test_date_max": "2026-04-29",
+    "shared_coords_train_val": 0,
+    "shared_coords_train_test": 1,
+    "shared_coords_val_test": 0,
+    "exclusion_summary": {
+      "target": [
+        "monthly_rent_rub"
+      ],
+      "leakage": [
+        "rent_per_sqm"
+      ],
+      "audit_and_id": [
+        "id",
+        "dq_flags"
+      ],
+      "corrupted_metro": [
+        "metro_station",
+        "metro_line",
+        "metro_distance_min"
+      ],
+      "retained_raw_features": [
+        "date_posted",
+        "district",
+        "okrug",
+        "lat",
+        "lon",
+        "total_area",
+        "rooms",
+        "floor",
+        "total_floors",
+        "building_year",
+        "building_type",
+        "renovation",
+        "furnished",
+        "pets_allowed",
+        "deposit_months",
+        "to_center_km"
+      ]
+    }
+  },
+  "feature_space_summary": {
+    "n_features_linear": 170,
+    "n_features_tree": 170,
+    "linear_breakdown": {
+      "numeric_scaled_count": 15,
+      "binary_count": 5,
+      "categorical_ohe_count": 150,
+      "district_ohe_count": 129,
+      "okrug_ohe_count": 11,
+      "building_type_ohe_count": 6,
+      "renovation_ohe_count": 4,
+      "numeric_features": [
+        "num__total_area",
+        "num__rooms",
+        "num__floor",
+        "num__total_floors",
+        "num__building_year",
+        "num__deposit_months",
+        "num__to_center_km",
+        "num__lat",
+        "num__lon",
+        "num__posting_year",
+        "num__posting_month_sin",
+        "num__posting_month_cos",
+        "num__building_age",
+        "num__area_per_room",
+        "num__floor_ratio"
+      ],
+      "binary_features": [
+        "bin__furnished",
+        "bin__pets_allowed",
+        "bin__is_presale_or_new",
+        "bin__is_first_floor",
+        "bin__is_top_floor"
+      ]
+    }
+  },
+  "data_routing_by_family": {
+    "linear": {
+      "status": "ACTIVE_FOR_STEP_05",
+      "description": "Matrices preprocesadas con SimpleImputer(median) + RobustScaler en las 15 variables numéricas, imputación por moda en las 5 binarias y OneHotEncoder(drop='if_binary') en las 4 categóricas (170 columnas totales).",
+      "files": {
+        "X_train": "data/processed/X_train_linear.csv",
+        "X_val": "data/processed/X_val_linear.csv",
+        "X_test": "data/processed/X_test_linear.csv",
+        "y_train": "data/processed/y_train.csv",
+        "y_val": "data/processed/y_val.csv",
+        "y_test": "data/processed/y_test.csv",
+        "preprocessor_joblib": "models/preprocessing/preprocessor_linear.joblib",
+        "target_transformer_joblib": "models/preprocessing/target_log_transformer.joblib"
+      }
+    },
+    "tree": {
+      "status": "EXCLUDED_NOT_REQUIRED_BY_LINEAR_DELIVERABLE",
+      "description": "Matrices preprocesadas sin escalado numérico generadas por 03_preprocessing.py (170 columnas totales). No se asignan a ningún candidato activo para evitar modelos adicionales innecesarios ajenos al requisito de regresión lineal.",
+      "files": {
+        "X_train": "data/processed/X_train_tree.csv",
+        "X_val": "data/processed/X_val_tree.csv",
+        "X_test": "data/processed/X_test_tree.csv",
+        "y_train": "data/processed/y_train.csv",
+        "y_val": "data/processed/y_val.csv",
+        "y_test": "data/processed/y_test.csv",
+        "preprocessor_joblib": "models/preprocessing/preprocessor_tree.joblib",
+        "target_transformer_joblib": "models/preprocessing/target_log_transformer.joblib"
+      }
+    }
+  },
+  "step_05_training_and_mlflow_protocol": {
+    "fit_partition": "train",
+    "model_selection_and_tuning_partition": "val",
+    "final_holdout_evaluation_partition": "test",
+    "target_evaluation_modes": [
+      {
+        "mode_id": "raw_rub",
+        "target_column": "monthly_rent_rub",
+        "inverse_transform_required": false,
+        "description": "Entrenamiento directo en rublos (RUB). Útil como comparación directa en unidades originales."
+      },
+      {
+        "mode_id": "log1p_rub",
+        "target_column": "monthly_rent_rub_log1p",
+        "inverse_transform_required": true,
+        "inverse_transformer_artifact": "models/preprocessing/target_log_transformer.joblib",
+        "inverse_function": "numpy.expm1",
+        "description": "Entrenamiento sobre ln(1 + monthly_rent_rub) para corregir la asimetría positiva (1.821 -> -0.133) y heterocedasticidad, aplicando np.expm1 antes de calcular las métricas en RUB."
+      }
+    ],
+    "evaluation_metrics_in_rub": [
+      "RMSE",
+      "MAE",
+      "MedAE",
+      "MAPE",
+      "R2"
+    ],
+    "mlflow_requirements": {
+      "mandatory_in_step_05": true,
+      "suggested_experiment_name": "moscow_rentals_linear_regression",
+      "log_items": [
+        "model_id, estimator_import, target_mode y parámetros del estimador",
+        "métricas en Train, Validation y Test expresadas en RUB (RMSE, MAE, MedAE, MAPE, R2)",
+        "artefacto del modelo entrenado y referencia a preprocessor_linear.joblib",
+        "tabla comparativa de coeficientes / importancia e inspección de residuos"
+      ]
+    }
+  },
+  "candidates": [
+    {
+      "model_id": "dummy_baseline",
+      "model_name": "DummyRegressor",
+      "estimator_import": "sklearn.dummy.DummyRegressor",
+      "role": "baseline_reference",
+      "is_primary_academic_model": false,
+      "matrix_family": "linear",
+      "input_files": {
+        "X_train": "data/processed/X_train_linear.csv",
+        "X_val": "data/processed/X_val_linear.csv",
+        "X_test": "data/processed/X_test_linear.csv",
+        "y_train": "data/processed/y_train.csv",
+        "y_val": "data/processed/y_val.csv",
+        "y_test": "data/processed/y_test.csv",
+        "preprocessor_joblib": "models/preprocessing/preprocessor_linear.joblib",
+        "target_transformer_joblib": "models/preprocessing/target_log_transformer.joblib"
+      },
+      "supported_target_columns": [
+        "monthly_rent_rub",
+        "monthly_rent_rub_log1p"
+      ],
+      "recommended_target_column": "monthly_rent_rub",
+      "requires_inverse_target_transform_when_log1p": true,
+      "default_params": {
+        "strategy": "median"
+      },
+      "search_grid": {
+        "strategy": [
+          "median",
+          "mean"
+        ]
+      },
+      "justification": "Punto de referencia básico indispensable (sanity check). Predice una constante (mediana de 45,800 RUB o media de 52,432.9 RUB en el conjunto histórico) sin usar predictores. Establece el piso mínimo de error (RMSE y MAE máximos aceptables) que cualquier regresión lineal debe superar en validación temporal.",
+      "advantages": [
+        "Costo computacional nulo y ausencia total de sobreajuste.",
+        "La estrategia 'median' es robusta frente a la asimetría positiva del target (skewness = 1.821 en Train).",
+        "Permite cuantificar la ganancia predictiva real aportada por las 170 features."
+      ],
+      "limitations": [
+        "No captura ninguna relación espacial, física ni temporal (R² <= 0 por definición en media).",
+        "Incapaz de reflejar la inflación nominal entre los periodos Train (2021-2024) y Val/Test (2024-2026)."
+      ]
+    },
+    {
+      "model_id": "linear_regression_ols",
+      "model_name": "LinearRegression",
+      "estimator_import": "sklearn.linear_model.LinearRegression",
+      "role": "primary_academic_model",
+      "is_primary_academic_model": true,
+      "matrix_family": "linear",
+      "input_files": {
+        "X_train": "data/processed/X_train_linear.csv",
+        "X_val": "data/processed/X_val_linear.csv",
+        "X_test": "data/processed/X_test_linear.csv",
+        "y_train": "data/processed/y_train.csv",
+        "y_val": "data/processed/y_val.csv",
+        "y_test": "data/processed/y_test.csv",
+        "preprocessor_joblib": "models/preprocessing/preprocessor_linear.joblib",
+        "target_transformer_joblib": "models/preprocessing/target_log_transformer.joblib"
+      },
+      "supported_target_columns": [
+        "monthly_rent_rub",
+        "monthly_rent_rub_log1p"
+      ],
+      "recommended_target_column": "monthly_rent_rub_log1p",
+      "requires_inverse_target_transform_when_log1p": true,
+      "default_params": {
+        "fit_intercept": true
+      },
+      "search_grid": {
+        "fit_intercept": [
+          true
+        ]
+      },
+      "justification": "Modelo principal del proyecto porque la entrega académica exige expresamente un modelo final de regresión lineal. Permite estimar por Mínimos Cuadrados Ordinarios (OLS mediante descomposición SVD) el efecto marginal de variables clave como 'to_center_km' (r = -0.5314), 'total_area' (r = 0.4108) y los distritos ('district', eta² = 0.6044). Se recomienda su ajuste sobre 'monthly_rent_rub_log1p' (asimetría = -0.133) contrastándolo contra la escala original en el paso 5.",
+      "advantages": [
+        "Cumple de manera directa el requisito académico obligatorio del proyecto.",
+        "Máxima interpretabilidad económica de los coeficientes (elasticidades y semielasticidades en escala log1p).",
+        "Entrenamiento determinista y cerrado sin hiperparámetros de penalización que ajustar.",
+        "Capacidad de extrapolar la tendencia inflacionaria nominal a través de 'num__posting_year'."
+      ],
+      "limitations": [
+        "Alta varianza en los estimadores ante multicolinealidad entre predictores físicos ('total_area', 'rooms', 'area_per_room') y temporales ('building_year', 'posting_year', 'building_age').",
+        "Sensible a la dependencia lineal exacta de las 150 columnas One-Hot ('okrug', 'district', 'building_type', 'renovation' codificadas sin descartar categoría base) y al anidamiento jerárquico entre 'district' (129) y 'okrug' (11).",
+        "Sensible a valores extremos en escala original (936 outliers > 1.5 IQR) si no se emplea la transformación log1p."
+      ]
+    },
+    {
+      "model_id": "ridge_l2",
+      "model_name": "Ridge",
+      "estimator_import": "sklearn.linear_model.Ridge",
+      "role": "regularized_linear_alternative",
+      "is_primary_academic_model": false,
+      "matrix_family": "linear",
+      "input_files": {
+        "X_train": "data/processed/X_train_linear.csv",
+        "X_val": "data/processed/X_val_linear.csv",
+        "X_test": "data/processed/X_test_linear.csv",
+        "y_train": "data/processed/y_train.csv",
+        "y_val": "data/processed/y_val.csv",
+        "y_test": "data/processed/y_test.csv",
+        "preprocessor_joblib": "models/preprocessing/preprocessor_linear.joblib",
+        "target_transformer_joblib": "models/preprocessing/target_log_transformer.joblib"
+      },
+      "supported_target_columns": [
+        "monthly_rent_rub",
+        "monthly_rent_rub_log1p"
+      ],
+      "recommended_target_column": "monthly_rent_rub_log1p",
+      "requires_inverse_target_transform_when_log1p": true,
+      "default_params": {
+        "alpha": 1.0,
+        "fit_intercept": true,
+        "random_state": 42
+      },
+      "search_grid": {
+        "alpha": [
+          0.01,
+          0.1,
+          1.0,
+          10.0,
+          50.0,
+          100.0
+        ]
+      },
+      "justification": "Alternativa lineal con regularización L2 diseñada específicamente para mitigar la multicolinealidad documentada en el EDA (VIF = 4.546 en 'total_area' y 4.545 en 'rooms') y en el preprocesamiento (ratios derivados 'area_per_room', 'floor_ratio', 'building_age', más la colinealidad estructural entre las 11 dummies de 'okrug' y las 129 dummies de 'district').",
+      "advantages": [
+        "Estabiliza la inversión de la matriz X^T X añadiendo penalización L2 (alpha * ||w||_2^2).",
+        "Retiene las 170 variables repartiendo el peso entre predictores correlacionados sin perder información geográfica.",
+        "Reduce la varianza de las predicciones en los distritos de baja frecuencia (< 1% cada uno)."
+      ],
+      "limitations": [
+        "No realiza selección de variables (ningún coeficiente se anula exactamente a cero).",
+        "Requiere calibrar el hiperparámetro 'alpha' sobre el conjunto de validación temporal."
+      ]
+    },
+    {
+      "model_id": "lasso_l1",
+      "model_name": "Lasso",
+      "estimator_import": "sklearn.linear_model.Lasso",
+      "role": "regularized_linear_alternative",
+      "is_primary_academic_model": false,
+      "matrix_family": "linear",
+      "input_files": {
+        "X_train": "data/processed/X_train_linear.csv",
+        "X_val": "data/processed/X_val_linear.csv",
+        "X_test": "data/processed/X_test_linear.csv",
+        "y_train": "data/processed/y_train.csv",
+        "y_val": "data/processed/y_val.csv",
+        "y_test": "data/processed/y_test.csv",
+        "preprocessor_joblib": "models/preprocessing/preprocessor_linear.joblib",
+        "target_transformer_joblib": "models/preprocessing/target_log_transformer.joblib"
+      },
+      "supported_target_columns": [
+        "monthly_rent_rub",
+        "monthly_rent_rub_log1p"
+      ],
+      "recommended_target_column": "monthly_rent_rub_log1p",
+      "requires_inverse_target_transform_when_log1p": true,
+      "default_params": {
+        "alpha": 0.001,
+        "max_iter": 10000,
+        "fit_intercept": true,
+        "random_state": 42
+      },
+      "search_grid": {
+        "alpha": [
+          0.0001,
+          0.0005,
+          0.001,
+          0.005,
+          0.01,
+          0.1,
+          1.0
+        ],
+        "max_iter": [
+          10000
+        ]
+      },
+      "justification": "Alternativa lineal con penalización L1 orientada a la reducción de dimensionalidad y selección automática de variables sobre las 170 columnas de 'X_*_linear.csv', donde 150 provienen de One-Hot Encoding y las 129 categorías de 'district' tienen frecuencias individuales inferiores al 1% (entre 0.61% y 0.95%).",
+      "advantages": [
+        "Produce modelos parsimoniosos (sparse) llevando exactamente a cero los coeficientes de distritos o variables redundantes.",
+        "Elimina automáticamente la redundancia de las categorías de referencia en los bloques One-Hot.",
+        "Facilita identificar el subconjunto mínimo de predictores con mayor impacto real."
+      ],
+      "limitations": [
+        "Ante grupos de variables altamente correlacionadas (como 'total_area', 'rooms' y 'area_per_room'), tiende a seleccionar una de forma arbitraria y descartar las demás.",
+        "Si 'alpha' es demasiado alto, puede subajustar (underfitting) al descartar distritos con primas de precio reales."
+      ]
+    },
+    {
+      "model_id": "elasticnet_l1_l2",
+      "model_name": "ElasticNet",
+      "estimator_import": "sklearn.linear_model.ElasticNet",
+      "role": "regularized_linear_alternative",
+      "is_primary_academic_model": false,
+      "matrix_family": "linear",
+      "input_files": {
+        "X_train": "data/processed/X_train_linear.csv",
+        "X_val": "data/processed/X_val_linear.csv",
+        "X_test": "data/processed/X_test_linear.csv",
+        "y_train": "data/processed/y_train.csv",
+        "y_val": "data/processed/y_val.csv",
+        "y_test": "data/processed/y_test.csv",
+        "preprocessor_joblib": "models/preprocessing/preprocessor_linear.joblib",
+        "target_transformer_joblib": "models/preprocessing/target_log_transformer.joblib"
+      },
+      "supported_target_columns": [
+        "monthly_rent_rub",
+        "monthly_rent_rub_log1p"
+      ],
+      "recommended_target_column": "monthly_rent_rub_log1p",
+      "requires_inverse_target_transform_when_log1p": true,
+      "default_params": {
+        "alpha": 0.001,
+        "l1_ratio": 0.5,
+        "max_iter": 10000,
+        "fit_intercept": true,
+        "random_state": 42
+      },
+      "search_grid": {
+        "alpha": [
+          0.0001,
+          0.001,
+          0.01,
+          0.1,
+          1.0
+        ],
+        "l1_ratio": [
+          0.1,
+          0.3,
+          0.5,
+          0.7,
+          0.9
+        ],
+        "max_iter": [
+          10000
+        ]
+      },
+      "justification": "Compromiso entre Ridge (L2) y Lasso (L1). Permite podar dummies irrelevantes de 'district' mediante la componente L1 mientras mantiene agrupados y estables los predictores físicamente colineales ('total_area', 'rooms', 'area_per_room' y coordenadas espaciales 'lat', 'lon', 'to_center_km') gracias a la componente L2.",
+      "advantages": [
+        "Supera la limitación de selección arbitraria de Lasso en presencia de grupos colineales (efecto de agrupación).",
+        "Combina esparsidad controlada con estabilidad numérica en espacios de 170 dimensiones.",
+        "Permite explorar de forma continua el balance entre L1 y L2 mediante 'l1_ratio'."
+      ],
+      "limitations": [
+        "Mayor espacio de búsqueda en validación al requerir el ajuste conjunto de dos hiperparámetros ('alpha' y 'l1_ratio').",
+        "Requiere 'max_iter' suficientemente alto para garantizar convergencia por descenso coordenado."
+      ]
+    }
+  ]
+}
