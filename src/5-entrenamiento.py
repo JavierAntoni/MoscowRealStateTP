@@ -761,7 +761,7 @@ def generate_diagnostic_plots(
     axes[1].set_xlabel("Valor Predicho ŷ (RUB)")
     axes[1].set_ylabel("Residuo e = y - ŷ (RUB)")
     axes[1].set_title(
-        "Residuos vs Predicho (Corrección de Heterocedasticidad)",
+        "Residuos vs Predicho (Diagnóstico de Heterocedasticidad)",
         fontsize=11,
         fontweight="bold",
     )
@@ -935,7 +935,7 @@ def build_training_evaluation_report(
         coef_audit_rows.append(
             f"| `{row['model_name']}` | `{row['target_mode']}` | "
             f"`{row['coef_l2_norm']:.4e}` | `{row['coef_l1_norm']:.4e}` | "
-            f"`{row['coef_max_abs']:.4e}` | `{int(row['n_zero_coefs'])}` / `170` (`{row['pct_zero_coefs']:.1f}%`) | "
+            f"`{row['coef_max_abs']:.4e}` | `{int(row['n_zero_coefs'])}` / `{mat_cond['n_features']}` (`{row['pct_zero_coefs']:.1f}%`) | "
             f"`{row['l2_numeric_scaled']:.4e}` | `{row['l2_ohe_okrug']:.4e}` | `{row['l2_ohe_district']:.4e}` |"
         )
 
@@ -982,9 +982,9 @@ def build_training_evaluation_report(
     key_num_features = [
         "num__total_area",
         "num__to_center_km",
-        "num__posting_year",
+        "num__posting_trend",
         "num__rooms",
-        "num__building_age",
+        "num__building_year",
         "num__area_per_room",
         "num__floor_ratio",
         "bin__furnished",
@@ -1014,7 +1014,44 @@ def build_training_evaluation_report(
             f"`{gr['val_mae_rub']:.2f}` | `{gr['val_r2_rub']:.4f}` | `{gr['coef_l2_norm']:.4e}` |"
         )
 
-    md_content = f"""# Informe de Entrenamiento, Ajuste, Evaluación y Tracking con MLflow — Alquileres en Moscú (Etapa 05)
+    feats_all = coef_comparison_df["feature"].astype(str)
+    n_num_cols = int(feats_all.str.startswith("num__").sum())
+    n_okrug_cols = int(feats_all.str.startswith("cat__okrug_").sum())
+    n_district_cols = int(feats_all.str.startswith("cat__district_").sum())
+
+    def _l2_norm(model_name: str, mode: str = "log1p_rub") -> float:
+        sub = summary_df[(summary_df["model_name"] == model_name) & (summary_df["target_mode"] == mode)]
+        return float(sub["coef_l2_norm"].iloc[0]) if len(sub) else float("nan")
+
+    l2_ols, l2_ridge = _l2_norm("LinearRegression"), _l2_norm("Ridge")
+
+    if mat_cond["rank_deficiency"] == 0:
+        rank_expl = (
+            f"**Diagnóstico de rango (`{mat_cond['n_features']}` columnas, rango `{mat_cond['matrix_rank']}`):** la matriz tiene rango completo. "
+            'La etapa 03 eliminó las dependencias exactas con `OneHotEncoder(drop="first")`, retirando `okrug` (suma exacta de sus `district`) '
+            "y `building_age` (combinación lineal de `building_year` y el tiempo). Persiste casi-colinealidad: `district` explica ~99% de la varianza "
+            "de `to_center_km` (medido sobre el dataset), por lo que el coeficiente de la distancia no es interpretable por separado de las dummies de distrito."
+        )
+    else:
+        rank_expl = (
+            f"**Diagnóstico de rango:** deficiencia de rango = `{mat_cond['rank_deficiency']}`. Causas típicas: bloques One-Hot completos "
+            "(suma por fila = 1, colineales con el intercepto), anidamiento `district` dentro de `okrug` y derivadas como `building_age` "
+            "(= `posting_year` − `building_year`). Revisar la rama `linear` de la etapa 03."
+        )
+
+    stability_txt = (
+        "OLS es numéricamente estable (rango completo)."
+        if mat_cond["rank_deficiency"] == 0
+        else "OLS opera con una matriz singular o cuasi-singular; los coeficientes individuales pueden ser inestables."
+    )
+    audit_conclusion = "\n".join([
+        f"- Número de condición `{mat_cond['condition_number']:.2e}`: {stability_txt} "
+        rf"Norma $\Vert\hat{{\beta}}\Vert_2$ en `log1p_rub`: OLS = `{l2_ols:.3f}` vs Ridge = `{l2_ridge:.3f}`.",
+        "- Las variantes regularizadas cambian muy poco el error predictivo (ver Sección 4): las diferencias entre OLS, Ridge, Lasso y ElasticNet son marginales y no deben leerse como superioridad de un modelo.",
+        "- `Lasso` y `ElasticNet` anulan coeficientes solo si el alpha elegido es lo bastante alto (ver columna `n_zero`); con alphas muy pequeños se comportan casi como OLS.",
+    ])
+
+    md_content = rf"""# Informe de Entrenamiento, Ajuste, Evaluación y Tracking con MLflow — Alquileres en Moscú (Etapa 05)
 
 | Metadato | Valor |
 |---|---|
@@ -1033,9 +1070,9 @@ def build_training_evaluation_report(
 
 En esta quinta etapa del proyecto se ejecutó el protocolo completo de entrenamiento, ajuste de hiperparámetros sobre partición temporal de validación, auditoría algebraica de coeficientes y evaluación final *holdout* (`Test` 2025-2026) para los 5 modelos candidatos definidos en `models/model_candidates.json`:
 
-1. **Superioridad del régimen logarítmico (`log1p_rub` vs `raw_rub`):** Entrenar sobre `monthly_rent_rub_log1p` ($\ln(1 + y)$) y retransformar a rublos mediante $\exp(\hat$\exp(\hat{{z}}) - 1$ mejora sustancialmente la generalización en `Validation` y `Test` frente al ajuste directo en rublos crudos (`raw_rub`), al corregir la asimetría positiva original (`1.821` $\to$ `-0.133`) y atenuar el apalancamiento de los alquileres *premium* de la cola derecha.
+1. **Superioridad del régimen logarítmico (`log1p_rub` vs `raw_rub`):** Entrenar sobre `monthly_rent_rub_log1p` ($\ln(1 + y)$) y retransformar a rublos mediante $\exp(\hat{{z}}) - 1$ mejora sustancialmente la generalización en `Validation` y `Test` frente al ajuste directo en rublos crudos (`raw_rub`), al corregir la asimetría positiva original (`1.821` $\to$ `-0.133`) y atenuar el apalancamiento de los alquileres *premium* de la cola derecha.
 2. **Desempeño del Modelo Principal Académico (`LinearRegression`):** En su mejor régimen (`{primary_info['target_mode']}`), `LinearRegression` alcanza en `Validation` un `RMSE` de **`{primary_info['val_rmse_rub']:.2f}` RUB** (`MAE = {primary_info['val_mae_rub']:.2f}` RUB, `R² = {primary_info['val_r2_rub']:.4f}`) y en `Test` un `RMSE` de **`{primary_info['test_rmse_rub']:.2f}` RUB** (`MAE = {primary_info['test_mae_rub']:.2f}` RUB, `R² = {primary_info['test_r2_rub']:.4f}`), superando ampliamente a `DummyRegressor`.
-3. **Comparación con Alternativas Regularizadas (`Ridge`, `Lasso`, `ElasticNet`):** El mejor modelo global en validación es **`{best_info['model_name']}` (`{best_info['target_mode']}`)** con hiperparámetros `{best_info['best_params']}`, logrando `Val RMSE = {best_info['val_rmse_rub']:.2f} RUB` y `Test RMSE = {best_info['test_rmse_rub']:.2f} RUB`. Mientras que la capacidad predictiva dentro del subespacio columna de $X$ es cercana entre OLS y las variantes regularizadas, la diferencia fundamental radica en la **estabilidad numérica del vector de coeficientes $\hat{{\beta}}$**.
+3. **Comparación con Alternativas Regularizadas (`Ridge`, `Lasso`, `ElasticNet`):** El mejor modelo global en validación es **`{best_info['model_name']}` (`{best_info['target_mode']}`)** con hiperparámetros `{best_info['best_params']}`, logrando `Val RMSE = {best_info['val_rmse_rub']:.2f} RUB` y `Test RMSE = {best_info['test_rmse_rub']:.2f} RUB`. Las diferencias de error entre OLS y las variantes regularizadas son marginales (ver Sección 4), por lo que esta elección no es concluyente solo con estas métricas.
 
 ---
 
@@ -1090,21 +1127,16 @@ Cuando el modelo se entrena sobre $z = \ln(1 + y)$, la predicción ingenua $\hat
 - **Rango algebraico efectivo (`np.linalg.matrix_rank`):** **`{mat_cond['matrix_rank']}`** (Deficiencia de rango exacta = **`{mat_cond['rank_deficiency']}` columnas linealmente dependientes**).
 - **Número de condición (`np.linalg.cond`):** **`{mat_cond['condition_number']:.4e}`** ($\sigma_{{\max}} = {mat_cond['max_singular_value']:.4e}$, $\sigma_{{\min}} = {mat_cond['min_singular_value']:.4e}$).
 
-**Explicación matemática de la deficiencia de rango ($170 - {mat_cond['matrix_rank']} = {mat_cond['rank_deficiency']}$):**
-1. En la Etapa 03, las 4 variables categóricas multiclase fueron codificadas mediante `OneHotEncoder(drop="if_binary")`, conservando las `150` columnas indicadoras completas (`okrug`: 11, `district`: 129, `building_type`: 6, `renovation`: 4). En cada bloque, la suma por fila es exactamente igual a la constante $1$ ($\sum_k D_{{i,k}} = 1$), lo que introduce colinealidad exacta con el intercepto $\beta_0$ y entre bloques.
-2. Existe **anidamiento jerárquico exacto** entre los `129` distritos municipales (`district`) y los `11` distritos administrativos (`okrug`): cada `okrug` es exactamente la suma de los distritos que lo componen.
-3. En las variables numéricas, `num__building_age = max(0, posting_year - building_year)` es combinación lineal exacta de `num__posting_year` y `num__building_year` en el $98.30\%$ de los anuncios donde `is_presale_or_new == 0`.
+{rank_expl}
 
 ### 5.2. Comparación Cuantitativa del Vector de Coeficientes $\hat{{\beta}}$ entre Modelos
 
-| Modelo | Modo Target | Norma L2 $\Vert\hat{{\beta}}\Vert_2$ | Norma L1 $\Vert\hat{{\beta}}\Vert_1$ | Máximo Absoluto $\max_j \vert\hat{{\beta}}_j\vert$ | Coeficientes Nulos (`n_zero` / `%`) | $\Vert\hat{{\beta}}_{{\text{{num}}}}\Vert_2$ (15 cols) | $\Vert\hat{{\beta}}_{{\text{{okrug}}}}\Vert_2$ (11 cols) | $\Vert\hat{{\beta}}_{{\text{{district}}}}\Vert_2$ (129 cols) |
+| Modelo | Modo Target | Norma L2 $\Vert\hat{{\beta}}\Vert_2$ | Norma L1 $\Vert\hat{{\beta}}\Vert_1$ | Máximo Absoluto $\max_j \vert\hat{{\beta}}_j\vert$ | Coeficientes Nulos (`n_zero` / `%`) | $\Vert\hat{{\beta}}_{{\text{{num}}}}\Vert_2$ ({n_num_cols} cols) | $\Vert\hat{{\beta}}_{{\text{{okrug}}}}\Vert_2$ ({n_okrug_cols} cols) | $\Vert\hat{{\beta}}_{{\text{{district}}}}\Vert_2$ ({n_district_cols} cols) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 {chr(10).join(coef_audit_rows)}
 
 **Conclusión de la auditoría numérica:**
-- En `LinearRegression` (OLS), la deficiencia de rango hace que $X^T X$ sea singular o cuasi-singular; aunque el solucionador SVD de `scikit-learn` proyecta sobre la pseudoinversa de Moore-Penrose manteniendo acotadas las predicciones $\hat{{y}} = X\hat{{\beta}}$ dentro del subespacio columna, **cualquier componente en el espacio nulo de $X$ o asociada a valores singulares diminutos ($\sigma_{{\min}} = {mat_cond['min_singular_value']:.4e}$) dispara la norma de los coeficientes individuales**.
-- **`Ridge` ($L_2$)** suma $\alpha I$ a la diagonal de $X^T X$, desplazando todos los autovalores hacia arriba ($\lambda_j + \alpha$) y reduciendo drásticamente $\Vert\hat{{\beta}}\Vert_2$ sin perder poder predictivo.
-- **`Lasso` ($L_1$) y `ElasticNet` ($L_1 + L_2$)** eliminan automáticamente las categorías redundantes y los distritos con baja señal estadística llevando sus coeficientes exactamente a cero (`n_zero_coefs`), resolviendo de manera simultánea la colinealidad estructural y la parsimonia del modelo.
+{audit_conclusion}
 
 ---
 
@@ -1125,10 +1157,10 @@ En el régimen `log1p_rub`, cada coeficiente $\hat{{\beta}}_j$ representa una **
 {chr(10).join(econ_rows)}
 
 **Lectura económica de los resultados:**
-1. **Gradiente espacial monocéntrico (`num__to_center_km`, `cat__okrug_*`, `cat__district_*`):** La distancia al centro de Moscú presenta signo negativo consistente, mientras que el okrug central (`cat__okrug_CAO`) y sus distritos históricos concentran las mayores primas positivas de precio frente a los distritos periféricos (`TAO`, `NAO`, `ZelAO`).
+1. **Gradiente espacial (`cat__district_*`, `num__to_center_km`):** la señal geográfica está en las dummies de distrito (Sección 6.2). `num__to_center_km` es casi redundante con `district` (~99% de su varianza la explica el distrito), por lo que su coeficiente individual no debe interpretarse por separado ni como "efecto de la distancia".
 2. **Escala física del inmueble (`num__total_area`, `num__rooms`, `num__area_per_room`):** La superficie total (`num__total_area`) es el impulsor físico dominante con elasticidad positiva; en los modelos con penalización $L_1$ (`Lasso` / `ElasticNet`), parte de la colinealidad entre `total_area`, `rooms` y `area_per_room` se consolida en `total_area` y `rooms`.
 3. **Calidad constructiva e interior (`cat__renovation_*`, `bin__furnished`):** Los acabados `designer` y `euro` aportan una prima sustancial frente a `cosmetic` y `no_renovation`, al igual que la condición de inmueble amoblado (`bin__furnished`).
-4. **Tendencia inflacionaria nominal (`num__posting_year`):** El coeficiente positivo de `num__posting_year` permite a la familia lineal extrapolar la tendencia nominal de alquileres entre `Train` (`2021–2024`) y `Val`/`Test` (`2024–2026`), superando la limitación estructural de los modelos constantes (`DummyRegressor`).
+4. **Tendencia temporal (`num__posting_trend`):** el mercado se estancó desde 2024 (precio mediano por m² plano), por lo que la tendencia se congela en el último valor visto en `Train` y no se extrapola a `Val`/`Test`. Revisar el sesgo mensual en la figura 04.
 
 ---
 
@@ -1137,16 +1169,16 @@ En el régimen `log1p_rub`, cada coeficiente $\hat{{\beta}}_j$ representa una **
 | Archivo Generado | Hallazgo Analítico Principal |
 |---|---|
 | `reports/figures/modeling/01_model_comparison_val_test.png` | Muestra visualmente la caída de `RMSE` y `MAE` y el salto en `R²` al pasar de `DummyRegressor` a los 4 modelos lineales, así como la ganancia sistemática del régimen `log1p_rub` frente a `raw_rub`. |
-| `reports/figures/modeling/02_ols_vs_regularized_coefficients.png` | Evidencia en escala logarítmica cómo la norma $\Vert\hat{{\beta}}\Vert_2$ de `LinearRegression` se infla por la colinealidad de los bloques One-Hot, mientras `Ridge`, `Lasso` y `ElasticNet` comprimen los pesos en varios órdenes de magnitud. |
-| `reports/figures/modeling/03_residuals_diagnostics.png` | Confirma que el entrenamiento en `raw_rub` exhibe heterocedasticidad en abanico (mayor varianza residual en alquileres altos), la cual se corrige sustancialmente bajo `log1p_rub`, acercando los residuos estandarizados a la recta normal teórica en el gráfico Q-Q. |
-| `reports/figures/modeling/04_temporal_error_drift_test.png` | Evalúa el error absoluto medio (`MAE`) y el sesgo monetario ($\hat{{y}} - y$) mes a mes entre junio de 2025 y abril de 2026 (`Test`), mostrando cómo `num__posting_year` absorbe gran parte de la inflación nominal del mercado moscovita. |
+| `reports/figures/modeling/02_ols_vs_regularized_coefficients.png` | Compara los coeficientes de `LinearRegression` frente a `Ridge`, `Lasso` y `ElasticNet`; con la matriz de rango completo las diferencias entre modelos son pequeñas. |
+| `reports/figures/modeling/03_residuals_diagnostics.png` | `raw_rub` muestra heterocedasticidad en abanico y puede predecir alquileres negativos. `log1p_rub` reduce la cola derecha del Q-Q, pero empeora la cola izquierda y, en escala RUB, el abanico persiste: no se demuestra corrección de heterocedasticidad ni normalidad. Para inferencia usar errores robustos (HC3) y un test formal (Breusch-Pagan). |
+| `reports/figures/modeling/04_temporal_error_drift_test.png` | Evalúa el error absoluto medio (`MAE`) y el sesgo monetario ($\hat{{y}} - y$) mes a mes entre junio de 2025 y abril de 2026 (`Test`), permitiendo detectar sesgo sistemático por mes; la tendencia congelada (`num__posting_trend`) evita extrapolar inflación que ya no continúa. |
 
 ---
 
 ## 8. Conclusión Final y Recomendación Académica
 
 1. **Entrega Académica Principal (`models/trained/primary_linear_regression.joblib`):** Se selecciona **`LinearRegression` entrenado en el régimen `{primary_info['target_mode']}`** como modelo principal para cumplir estrictamente la exigencia académica del proyecto (`Val RMSE = {primary_info['val_rmse_rub']:.2f} RUB`, `Test RMSE = {primary_info['test_rmse_rub']:.2f} RUB`, `Test R² = {primary_info['test_r2_rub']:.4f}`).
-2. **Mejor Modelo Lineal Global (`models/trained/best_linear_model.joblib`):** Para interpretación económica directa de los coeficientes individuales $\hat{{\beta}}_j$ y despliegue robusto ante colinealidad, se respalda con **`{best_info['model_name']}` (`{best_info['target_mode']}`, `{best_info['best_params']}`)**, que alcanza el menor error en validación (`Val RMSE = {best_info['val_rmse_rub']:.2f} RUB`, `Test RMSE = {best_info['test_rmse_rub']:.2f} RUB`) eliminando por completo la inestabilidad numérica en los pesos de las variables indicadoras.
+2. **Mejor Modelo Lineal Global (`models/trained/best_linear_model.joblib`):** Para interpretación económica directa de los coeficientes individuales $\hat{{\beta}}_j$ y despliegue robusto ante colinealidad, se respalda con **`{best_info['model_name']}` (`{best_info['target_mode']}`, `{best_info['best_params']}`)**, que alcanza el menor error en validación (`Val RMSE = {best_info['val_rmse_rub']:.2f} RUB`, `Test RMSE = {best_info['test_rmse_rub']:.2f} RUB`) con diferencias de error marginales respecto a `LinearRegression`; la elección entre ambos no es concluyente solo con estas métricas.
 """
 
     report_path.write_text(md_content, encoding="utf-8")

@@ -1,24 +1,24 @@
 {
   "stage": "04_model_selection",
-  "generated_at": "2026-10-16 15:07:17",
+  "generated_at": "2026-10-16 18:58:36",
   "academic_constraint": "La entrega académica exige un modelo final de regresión lineal. Se establece LinearRegression como modelo principal, acompañado por Ridge, Lasso y ElasticNet como alternativas lineales regularizadas y DummyRegressor como referencia básica.",
   "input_integrity": {
     "clean_dataset_sha256": "e43378a0de55cdc2320b76f273ef47e1158a41e7fb0d06da0dc34666a5cc1a71",
     "verified_upstream_files_sha256": {
       "reports/eda_report.md": "991059b28265d495ca45b721ad67ddb0679d98c3773772b26cbdb300c2e7b704",
-      "reports/preprocessing_report.md": "7240d2990736f63e3237a334a92812c44d6ad6c921340d4d03d6758dc9128559",
-      "models/preprocessing/preprocessing_metadata.json": "271b0e3827af73ef78d8169b3b4674a920fb6a8f1a2c230a693642952a577d2a",
-      "data/processed/X_train_linear.csv": "111dcd6216a6e2b2ad418dd1f5d004e6aec1686ffb1f3416d19e3b96920f9917",
-      "data/processed/X_val_linear.csv": "070ccbb36f6f2612d81fff088499f2e2849c5caa1b3b5516b7dfa75a2b30bc69",
-      "data/processed/X_test_linear.csv": "21d72ab52d0f2567bde0d57b4cd6c71a5b4de78fe07ced6b95a0d7194db0ce45",
-      "data/processed/X_train_tree.csv": "83777efce60d6f3f812f97bd953d2cbc0893ab5c2de94a422a9b0cae9ebc329a",
-      "data/processed/X_val_tree.csv": "4c12d944a5e73f6f86244fdc0a535784c241e376b1daba5954f9ef43486fce03",
-      "data/processed/X_test_tree.csv": "412bfb5c46f3389aa72cdad735dde47498b454aaf90f990fd73e36ff09f8466f",
+      "reports/preprocessing_report.md": "0909b221af3658640233023ca10dde892324d8df77dbfb812478e86fdf83f590",
+      "models/preprocessing/preprocessing_metadata.json": "7494e23644a66f56c5577759da44d9ce913dce6d9b89d81dde5f635dc3f08983",
+      "data/processed/X_train_linear.csv": "96ca915ea960e0a36debe438018adce5d76415ca501438a69127c27f13a656da",
+      "data/processed/X_val_linear.csv": "d7f03d0ac46986b53aefe3a09ca2f3033fe14d68e396298825b9dc6988d69dea",
+      "data/processed/X_test_linear.csv": "551be1911c5d700d1ff3fa08019bdffa91a15b7c0b391d9d751e839d08ee06e5",
+      "data/processed/X_train_tree.csv": "6c203b47cfbb2a1d3a6170b8a1c44a6339c3a5779bf26952344ac5207de243b1",
+      "data/processed/X_val_tree.csv": "7dc43bbde177fa9a258701a4df6ad5251ee7a62eaef76e35faaf4b1b192c5879",
+      "data/processed/X_test_tree.csv": "ec5bbea5af84c0d04277d803c5b087d0c0ab2feb3982fcbfc2994ec4b54b8aef",
       "data/processed/y_train.csv": "fbf8eb503bfca159e7967c4c15cc3febdc5a6edc5a8271e2401b6be8f0bc1145",
       "data/processed/y_val.csv": "3982d8dd5aa092be5f61cb4bd583f24fd2b412835f7a2d410ac4a34b352b35b6",
       "data/processed/y_test.csv": "c7dfff904f05fec4963d04e160addfbc0d7f8aa07752ff46f14bf32c146c0f70",
-      "models/preprocessing/preprocessor_linear.joblib": "d7b8dfd31591a87c988684ba248eedf445b8eefcc4a34cd65aaf565d3a094bfa",
-      "models/preprocessing/preprocessor_tree.joblib": "3e5868863774596e8296a431998f2435831b2d99e60b5debdf7b6a24c1674743",
+      "models/preprocessing/preprocessor_linear.joblib": "663d3ef160bf4f09d8ee09e89fe34e2d3bd5ea714f2a6d5f0dca4b34c394a976",
+      "models/preprocessing/preprocessor_tree.joblib": "331b2ce1f850af5a65b3ae66ed5edeecad883536b19756dcf87806353a6020da",
       "models/preprocessing/target_log_transformer.joblib": "a272c046080c7902d2fc6463b763e7eefe22f1d4b7006758527857e48b9a1940"
     }
   },
@@ -76,16 +76,16 @@
     }
   },
   "feature_space_summary": {
-    "n_features_linear": 170,
+    "n_features_linear": 155,
     "n_features_tree": 170,
     "linear_breakdown": {
-      "numeric_scaled_count": 15,
+      "numeric_scaled_count": 14,
       "binary_count": 5,
-      "categorical_ohe_count": 150,
-      "district_ohe_count": 129,
-      "okrug_ohe_count": 11,
-      "building_type_ohe_count": 6,
-      "renovation_ohe_count": 4,
+      "categorical_ohe_count": 136,
+      "district_ohe_count": 128,
+      "okrug_ohe_count": 0,
+      "building_type_ohe_count": 5,
+      "renovation_ohe_count": 3,
       "numeric_features": [
         "num__total_area",
         "num__rooms",
@@ -96,12 +96,11 @@
         "num__to_center_km",
         "num__lat",
         "num__lon",
-        "num__posting_year",
         "num__posting_month_sin",
         "num__posting_month_cos",
-        "num__building_age",
         "num__area_per_room",
-        "num__floor_ratio"
+        "num__floor_ratio",
+        "num__posting_trend"
       ],
       "binary_features": [
         "bin__furnished",
@@ -115,7 +114,7 @@
   "data_routing_by_family": {
     "linear": {
       "status": "ACTIVE_FOR_STEP_05",
-      "description": "Matrices preprocesadas con SimpleImputer(median) + RobustScaler en las 15 variables numéricas, imputación por moda en las 5 binarias y OneHotEncoder(drop='if_binary') en las 4 categóricas (170 columnas totales).",
+      "description": "Matrices preprocesadas con SimpleImputer(median) + RobustScaler en las 14 variables numéricas, imputación por moda en las 5 binarias y OneHotEncoder(drop='first') en las categóricas (155 columnas totales; sin 'okrug' ni 'building_age' para evitar dependencias exactas).",
       "files": {
         "X_train": "data/processed/X_train_linear.csv",
         "X_val": "data/processed/X_val_linear.csv",
@@ -217,7 +216,7 @@
       "advantages": [
         "Costo computacional nulo y ausencia total de sobreajuste.",
         "La estrategia 'median' es robusta frente a la asimetría positiva del target (skewness = 1.821 en Train).",
-        "Permite cuantificar la ganancia predictiva real aportada por las 170 features."
+        "Permite cuantificar la ganancia predictiva real aportada por las 155 features."
       ],
       "limitations": [
         "No captura ninguna relación espacial, física ni temporal (R² <= 0 por definición en media).",
@@ -260,11 +259,11 @@
         "Cumple de manera directa el requisito académico obligatorio del proyecto.",
         "Máxima interpretabilidad económica de los coeficientes (elasticidades y semielasticidades en escala log1p).",
         "Entrenamiento determinista y cerrado sin hiperparámetros de penalización que ajustar.",
-        "Capacidad de extrapolar la tendencia inflacionaria nominal a través de 'num__posting_year'."
+        "Captura la tendencia temporal mediante 'num__posting_trend', congelada en el último valor visto en Train (no extrapola una inflación que ya no continúa)."
       ],
       "limitations": [
-        "Alta varianza en los estimadores ante multicolinealidad entre predictores físicos ('total_area', 'rooms', 'area_per_room') y temporales ('building_year', 'posting_year', 'building_age').",
-        "Sensible a la dependencia lineal exacta de las 150 columnas One-Hot ('okrug', 'district', 'building_type', 'renovation' codificadas sin descartar categoría base) y al anidamiento jerárquico entre 'district' (129) y 'okrug' (11).",
+        "Alta varianza en los estimadores ante multicolinealidad entre predictores físicos ('total_area', 'rooms', 'area_per_room').",
+        "La rama lineal de la etapa 03 ya no tiene dependencias exactas (drop='first', sin 'okrug' ni 'building_age'), pero persiste casi-colinealidad entre 'to_center_km' y las dummies de 'district' (district explica ~99% de su varianza): los coeficientes de ambos no son interpretables por separado.",
         "Sensible a valores extremos en escala original (936 outliers > 1.5 IQR) si no se emplea la transformación log1p."
       ]
     },
@@ -306,10 +305,10 @@
           100.0
         ]
       },
-      "justification": "Alternativa lineal con regularización L2 diseñada específicamente para mitigar la multicolinealidad documentada en el EDA (VIF = 4.546 en 'total_area' y 4.545 en 'rooms') y en el preprocesamiento (ratios derivados 'area_per_room', 'floor_ratio', 'building_age', más la colinealidad estructural entre las 11 dummies de 'okrug' y las 129 dummies de 'district').",
+      "justification": "Alternativa lineal con regularización L2 diseñada específicamente para mitigar la multicolinealidad documentada en el EDA (VIF = 4.546 en 'total_area' y 4.545 en 'rooms') y en el preprocesamiento (ratios derivados 'area_per_room', 'floor_ratio') y en la casi-colinealidad entre 'to_center_km' y las 129 dummies de 'district').",
       "advantages": [
         "Estabiliza la inversión de la matriz X^T X añadiendo penalización L2 (alpha * ||w||_2^2).",
-        "Retiene las 170 variables repartiendo el peso entre predictores correlacionados sin perder información geográfica.",
+        "Retiene las 155 variables repartiendo el peso entre predictores correlacionados sin perder información geográfica.",
         "Reduce la varianza de las predicciones en los distritos de baja frecuencia (< 1% cada uno)."
       ],
       "limitations": [
@@ -348,6 +347,8 @@
       },
       "search_grid": {
         "alpha": [
+          1e-05,
+          5e-05,
           0.0001,
           0.0005,
           0.001,
@@ -360,10 +361,10 @@
           10000
         ]
       },
-      "justification": "Alternativa lineal con penalización L1 orientada a la reducción de dimensionalidad y selección automática de variables sobre las 170 columnas de 'X_*_linear.csv', donde 150 provienen de One-Hot Encoding y las 129 categorías de 'district' tienen frecuencias individuales inferiores al 1% (entre 0.61% y 0.95%).",
+      "justification": "Alternativa lineal con penalización L1 orientada a la reducción de dimensionalidad y selección automática de variables sobre las 155 columnas de 'X_*_linear.csv', donde 136 provienen de One-Hot Encoding y las 129 categorías de 'district' tienen frecuencias individuales inferiores al 1% (entre 0.61% y 0.95%).",
       "advantages": [
         "Produce modelos parsimoniosos (sparse) llevando exactamente a cero los coeficientes de distritos o variables redundantes.",
-        "Elimina automáticamente la redundancia de las categorías de referencia en los bloques One-Hot.",
+        "Anula automáticamente distritos y dummies con poca señal (pocos anuncios por distrito).",
         "Facilita identificar el subconjunto mínimo de predictores con mayor impacto real."
       ],
       "limitations": [
@@ -403,6 +404,7 @@
       },
       "search_grid": {
         "alpha": [
+          1e-05,
           0.0001,
           0.001,
           0.01,
@@ -423,7 +425,7 @@
       "justification": "Compromiso entre Ridge (L2) y Lasso (L1). Permite podar dummies irrelevantes de 'district' mediante la componente L1 mientras mantiene agrupados y estables los predictores físicamente colineales ('total_area', 'rooms', 'area_per_room' y coordenadas espaciales 'lat', 'lon', 'to_center_km') gracias a la componente L2.",
       "advantages": [
         "Supera la limitación de selección arbitraria de Lasso en presencia de grupos colineales (efecto de agrupación).",
-        "Combina esparsidad controlada con estabilidad numérica en espacios de 170 dimensiones.",
+        "Combina esparsidad controlada con estabilidad numérica en espacios de 155 dimensiones.",
         "Permite explorar de forma continua el balance entre L1 y L2 mediante 'l1_ratio'."
       ],
       "limitations": [

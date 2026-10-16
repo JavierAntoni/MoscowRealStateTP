@@ -2,12 +2,12 @@
 
 | Metadato | Valor |
 |---|---|
-| Fecha de generación | `2026-10-16 15:51:36` |
+| Fecha de generación | `2026-10-16 18:57:50` |
 | Archivo de entrada (solo lectura) | `data/rentals_clean.csv` |
 | SHA-256 verificado (inmutable) | `e43378a0de55cdc2320b76f273ef47e1158a41e7fb0d06da0dc34666a5cc1a71` |
 | Variable objetivo (`y`) | `monthly_rent_rub` (alquiler mensual en RUB) |
 | Filas totales procesadas | `20000` |
-| Dimensiones post-preprocesamiento (`linear`) | `170` columnas |
+| Dimensiones post-preprocesamiento (`linear`) | `155` columnas |
 | Dimensiones post-preprocesamiento (`tree`) | `170` columnas |
 
 ## 1. Integridad de Entrada y Separación de Variables (`X` / `y`)
@@ -23,7 +23,7 @@
 | `id` | **Identificador único** | Secuencia alfanumérica (`R000001`..`R020000`) con cardinalidad 100% sin valor predictivo; se conserva por separado solo para trazabilidad de filas. |
 | `dq_flags` | **Artefacto de auditoría** | Creada en `01_cleaning.py` (98.31% nula). Tanto el informe de limpieza como el EDA prohíben su uso como predictor. |
 | `metro_station`, `metro_line` | **Corrupción semántica severa** | Cada estación aparece distribuida en una mediana de 11 de los 11 `okrug` de Moscú, lo cual es geográficamente imposible e introduce ruido espurio. |
-| `metro_distance_min` | **Colinealidad severa y anomalía de escala** | Presenta $r = 0.904$ ($	ext{VIF} = 5.498$) con `to_center_km`, alcanza 966 minutos y supera 120 minutos en el 45.0% de las filas (Figura 06). |
+| `metro_distance_min` | **Colinealidad severa y anomalía de escala** | Presenta $r = 0.904$ ($\text{VIF} = 5.498$) con `to_center_km`, alcanza 966 minutos y supera 120 minutos en el 45.0% de las filas (Figura 06). |
 
 ## 3. Estrategia de División Temporal (Train / Validation / Test)
 
@@ -44,10 +44,12 @@ Dado que `date_posted` abarca desde `2021-01-01` hasta `2026-04-29` y la Figura 
    - Resolución de la anomalía `building_year > posting_year` (339 filas): creación de `is_presale_or_new` (0/1) y `building_age = max(0, posting_year - building_year)`.
    - Ratios estructurales: `area_per_room = total_area / rooms`, `floor_ratio = floor / total_floors`, `is_first_floor` e `is_top_floor`.
 2. **Columnas por rama dentro del `ColumnTransformer`:**
-   - **Numéricas (15):** `total_area, rooms, floor, total_floors, building_year, deposit_months, to_center_km, lat, lon, posting_year, posting_month_sin, posting_month_cos, building_age, area_per_room, floor_ratio`
+   - **Numéricas (14):** `total_area, rooms, floor, total_floors, building_year, deposit_months, to_center_km, lat, lon, posting_month_sin, posting_month_cos, area_per_room, floor_ratio, posting_trend`
    - **Binarias (5):** `furnished, pets_allowed, is_presale_or_new, is_first_floor, is_top_floor`
-   - **Categóricas (4):** `okrug, district, building_type, renovation`
+   - **Categóricas (3):** `district, building_type, renovation`
 3. **Escalado diferenciado según el modelo:**
-   - **Pipeline `linear` (`Ridge`, `Lasso`, `ElasticNet`, `HuberRegressor`):** Imputación por mediana + **`RobustScaler`** en las 15 variables numéricas (mitiga la asimetría y cola pesada de `to_center_km` y `floor` observadas en la Figura 02), imputación por moda en binarias (`{0, 1}` sin escalar) y `OneHotEncoder(handle_unknown="ignore", drop="if_binary")` en categóricas.
-   - **Pipeline `tree` (`LightGBM`, `XGBoost`, `CatBoost`, `RandomForest`, `ExtraTrees`):** Imputación por mediana **sin escalado** en las 15 variables numéricas (los árboles son invariantes a escalados monótonos y conservan las unidades físicas originales), imputación por moda en binarias y `OneHotEncoder(handle_unknown="ignore")` en categóricas.
-4. **Garantía anti-fuga en el ajuste:** Todos los estimadores (`SimpleImputer`, `RobustScaler`, `OneHotEncoder`) se ajustaron **exclusivamente sobre `X_train`**, aplicando únicamente `.transform()` sobre `X_val` y `X_test`.
+   - **Pipeline `linear` (`Ridge`, `Lasso`, `ElasticNet`, `HuberRegressor`):** Imputación por mediana + **`RobustScaler`** en las 14 variables numéricas (mitiga la asimetría y cola pesada de `to_center_km` y `floor` observadas en la Figura 02), imputación por moda en binarias (`{0, 1}` sin escalar) y `OneHotEncoder(handle_unknown="ignore", drop="first")` en categóricas.
+     Para eliminar la colinealidad exacta se excluyen de esta rama `okrug` (suma exacta de sus `district`) y `building_age` (combinación lineal de `building_year` y el tiempo).
+   - **Pipeline `tree` (`LightGBM`, `XGBoost`, `CatBoost`, `RandomForest`, `ExtraTrees`):** Imputación por mediana **sin escalado** en las 14 variables numéricas (los árboles son invariantes a escalados monótonos y conservan las unidades físicas originales), imputación por moda en binarias y `OneHotEncoder(handle_unknown="ignore")` en categóricas.
+4. **Tendencia temporal (`trend_mode`):** el modo por defecto `capped` crea `posting_trend` (años desde el inicio de Train) y lo **congela en el máximo observado en Train**; así Val/Test no extrapolan una inflación nominal que ya no continúa. Modos alternativos: `drop` (sin tendencia) y `raw` (`posting_year` lineal sin tope, comportamiento previo).
+5. **Garantía anti-fuga en el ajuste:** Todos los estimadores (`SimpleImputer`, `RobustScaler`, `OneHotEncoder`) se ajustaron **exclusivamente sobre `X_train`**, aplicando únicamente `.transform()` sobre `X_val` y `X_test`.

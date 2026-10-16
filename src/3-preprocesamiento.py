@@ -18,7 +18,10 @@ Características principales:
    dentro del Pipeline de scikit-learn.
 5. Arquitectura dual de preprocesamiento (`ColumnTransformer` + `Pipeline`):
    - `linear`: Imputación por mediana + `RobustScaler` en numéricas, booleanas en {0,1}
-     y `OneHotEncoder(drop='if_binary')` en categóricas.
+     y `OneHotEncoder(drop='first')` en categóricas. Sin dependencias lineales exactas:
+     se retira `okrug` (anidado en `district`) y `building_age` (combinación de
+     `building_year` y tiempo), y la tendencia temporal se congela en el último valor
+     visto en Train (`trend_mode="capped"`) para no extrapolar a Val/Test.
    - `tree`: Imputación por mediana SIN escalado en numéricas (preserva unidades
      físicas para GBDT/Bagging), booleanas en {0,1} y `OneHotEncoder` en categóricas.
 6. Ajuste (`fit`) exclusivo sobre `X_train` y serialización reproducible.
@@ -98,12 +101,21 @@ RAW_CATEGORICAL_COLS: List[str] = [
 # Variables numéricas generadas por DomainFeatureEngineer:
 ENGINEERED_NUMERIC_COLS: List[str] = [
     "posting_year",
+    "posting_trend",
     "posting_month_sin",
     "posting_month_cos",
     "building_age",
     "area_per_room",
     "floor_ratio",
 ]
+
+# Columnas que se retiran SOLO de la rama lineal para eliminar dependencias exactas:
+#  - `okrug` es la suma exacta de sus `district` (anidamiento 129 -> 11).
+#  - `building_age = max(0, posting_year - building_year)` es combinación lineal
+#    de `building_year` y del tiempo en ~98% de las filas; se conserva `building_year`
+#    (+ `is_presale_or_new`) porque no mezcla el efecto del tiempo calendario.
+LINEAR_REDUNDANT_NUMERIC: List[str] = ["building_age"]
+LINEAR_REDUNDANT_CATEGORICAL: List[str] = ["okrug"]
 
 ENGINEERED_BINARY_COLS: List[str] = [
     "is_presale_or_new",
@@ -123,6 +135,11 @@ class PreprocessingConfig:
     verify_sha256: bool = True
     include_metro_distance: bool = False
     include_district: bool = True
+    # Tratamiento de la tendencia temporal (ver DomainFeatureEngineer):
+    #   "capped" -> índice temporal continuo congelado en el último valor visto en Train (default)
+    #   "drop"   -> sin variable de tendencia
+    #   "raw"    -> `posting_year` lineal sin tope (comportamiento original, extrapola)
+    trend_mode: str = "capped"
     train_ratio: float = 0.70
     val_ratio: float = 0.15
     test_ratio: float = 0.15
@@ -366,12 +383,22 @@ class DomainFeatureEngineer(BaseEstimator, TransformerMixin):
        preservando valores faltantes (`np.nan`) para el imputador posterior.
     """
 
-    def __init__(self, drop_date_col: bool = True) -> None:
+    def __init__(self, drop_date_col: bool = True, trend_mode: str = "capped") -> None:
         self.drop_date_col = drop_date_col
+        self.trend_mode = trend_mode
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None) -> "DomainFeatureEngineer":
         self.n_features_in_ = X.shape[1]
         self.feature_names_in_ = np.asarray(X.columns, dtype=object)
+        # Estado aprendido SOLO con Train: rango temporal observado. Permite congelar
+        # la tendencia en el último valor visto en vez de extrapolarla a Val/Test.
+        if DATE_COL in X.columns:
+            dt = pd.to_datetime(X[DATE_COL], format="%Y-%m-%d", errors="coerce")
+            self.trend_origin_ = dt.min()
+            self.trend_max_years_ = float((dt.max() - dt.min()).days / 365.25)
+        else:
+            self.trend_origin_ = pd.NaT
+            self.trend_max_years_ = np.nan
         return self
 
     def transform(self, X: pd.DataFrame) -> pd.DataFrame:
@@ -390,6 +417,13 @@ class DomainFeatureEngineer(BaseEstimator, TransformerMixin):
             posting_month = pd.Series(np.nan, index=X_df.index, dtype=float)
 
         X_df["posting_year"] = posting_year
+        # Índice temporal continuo (años desde el inicio de Train), con tope en el
+        # último valor observado en Train: Val/Test no extrapolan la tendencia.
+        if DATE_COL in X_df.columns and pd.notna(getattr(self, "trend_origin_", pd.NaT)):
+            t_years = (dt - self.trend_origin_).dt.days / 365.25
+            X_df["posting_trend"] = np.minimum(t_years, self.trend_max_years_).astype(float)
+        else:
+            X_df["posting_trend"] = np.nan
         X_df["posting_month_sin"] = np.sin(2.0 * np.pi * posting_month / 12.0)
         X_df["posting_month_cos"] = np.cos(2.0 * np.pi * posting_month / 12.0)
 
@@ -456,6 +490,7 @@ def build_preprocessing_pipeline(
     model_family: str = "linear",
     include_metro_distance: bool = False,
     include_district: bool = True,
+    trend_mode: str = "capped",
 ) -> Pipeline:
     """
     Construye el Pipeline de preprocesamiento adaptado a la familia de modelos:
@@ -482,13 +517,25 @@ def build_preprocessing_pipeline(
             f"model_family debe ser 'linear' o 'tree'; se recibió '{model_family}'."
         )
 
-    numeric_cols = list(RAW_NUMERIC_COLS) + list(ENGINEERED_NUMERIC_COLS)
+    if trend_mode not in {"capped", "drop", "raw"}:
+        raise ValueError(f"trend_mode debe ser 'capped', 'drop' o 'raw'; se recibió '{trend_mode}'.")
+    trend_cols = {"capped": ["posting_trend"], "drop": [], "raw": ["posting_year"]}[trend_mode]
+    engineered_num = [
+        c for c in ENGINEERED_NUMERIC_COLS if c not in ("posting_year", "posting_trend")
+    ] + trend_cols
+    numeric_cols = list(RAW_NUMERIC_COLS) + engineered_num
     if include_metro_distance and "metro_distance_min" not in numeric_cols:
         numeric_cols.append("metro_distance_min")
 
     binary_cols = list(RAW_BOOLEAN_COLS) + list(ENGINEERED_BINARY_COLS)
 
     categorical_cols = [c for c in RAW_CATEGORICAL_COLS if include_district or c != "district"]
+
+    # Rama lineal: se eliminan columnas con dependencia lineal exacta (ver constantes).
+    if family == "linear":
+        numeric_cols = [c for c in numeric_cols if c not in LINEAR_REDUNDANT_NUMERIC]
+        if "district" in categorical_cols:  # okrug solo se retira si district lo reemplaza
+            categorical_cols = [c for c in categorical_cols if c not in LINEAR_REDUNDANT_CATEGORICAL]
 
     # Rama numérica diferenciada según la familia del modelo
     if family == "linear":
@@ -498,7 +545,7 @@ def build_preprocessing_pipeline(
                 ("scaler", RobustScaler(with_centering=True, with_scaling=True)),
             ]
         )
-        ohe_drop = "if_binary"
+        ohe_drop = "first"  # elimina la colinealidad exacta de cada bloque dummy con el intercepto
     else:
         numeric_transformer = Pipeline(
             steps=[
@@ -543,7 +590,7 @@ def build_preprocessing_pipeline(
 
     full_pipeline = Pipeline(
         steps=[
-            ("domain_features", DomainFeatureEngineer(drop_date_col=True)),
+            ("domain_features", DomainFeatureEngineer(drop_date_col=True, trend_mode=trend_mode)),
             ("preprocessor", column_transformer),
         ]
     )
@@ -588,7 +635,7 @@ def generate_preprocessing_report(
     y_train_skew_raw = float(pd.Series(split_result.y_train).skew())
     y_train_skew_log = float(pd.Series(np.log1p(split_result.y_train)).skew())
 
-    content = f"""# Informe de Preprocesamiento para Machine Learning — Alquileres en Moscú (Etapa 03)
+    content = rf"""# Informe de Preprocesamiento para Machine Learning — Alquileres en Moscú (Etapa 03)
 
 | Metadato | Valor |
 |---|---|
@@ -638,9 +685,11 @@ Dado que `date_posted` abarca desde `2021-01-01` hasta `2026-04-29` y la Figura 
    - **Binarias ({len(bin_cols_linear)}):** `{", ".join(bin_cols_linear)}`
    - **Categóricas ({len(cat_cols_linear)}):** `{", ".join(cat_cols_linear)}`
 3. **Escalado diferenciado según el modelo:**
-   - **Pipeline `linear` (`Ridge`, `Lasso`, `ElasticNet`, `HuberRegressor`):** Imputación por mediana + **`RobustScaler`** en las {len(num_cols_linear)} variables numéricas (mitiga la asimetría y cola pesada de `to_center_km` y `floor` observadas en la Figura 02), imputación por moda en binarias (`{{0, 1}}` sin escalar) y `OneHotEncoder(handle_unknown="ignore", drop="if_binary")` en categóricas.
+   - **Pipeline `linear` (`Ridge`, `Lasso`, `ElasticNet`, `HuberRegressor`):** Imputación por mediana + **`RobustScaler`** en las {len(num_cols_linear)} variables numéricas (mitiga la asimetría y cola pesada de `to_center_km` y `floor` observadas en la Figura 02), imputación por moda en binarias (`{{0, 1}}` sin escalar) y `OneHotEncoder(handle_unknown="ignore", drop="first")` en categóricas.
+     Para eliminar la colinealidad exacta se excluyen de esta rama `okrug` (suma exacta de sus `district`) y `building_age` (combinación lineal de `building_year` y el tiempo).
    - **Pipeline `tree` (`LightGBM`, `XGBoost`, `CatBoost`, `RandomForest`, `ExtraTrees`):** Imputación por mediana **sin escalado** en las {len(num_cols_linear)} variables numéricas (los árboles son invariantes a escalados monótonos y conservan las unidades físicas originales), imputación por moda en binarias y `OneHotEncoder(handle_unknown="ignore")` en categóricas.
-4. **Garantía anti-fuga en el ajuste:** Todos los estimadores (`SimpleImputer`, `RobustScaler`, `OneHotEncoder`) se ajustaron **exclusivamente sobre `X_train`**, aplicando únicamente `.transform()` sobre `X_val` y `X_test`.
+4. **Tendencia temporal (`trend_mode`):** el modo por defecto `capped` crea `posting_trend` (años desde el inicio de Train) y lo **congela en el máximo observado en Train**; así Val/Test no extrapolan una inflación nominal que ya no continúa. Modos alternativos: `drop` (sin tendencia) y `raw` (`posting_year` lineal sin tope, comportamiento previo).
+5. **Garantía anti-fuga en el ajuste:** Todos los estimadores (`SimpleImputer`, `RobustScaler`, `OneHotEncoder`) se ajustaron **exclusivamente sobre `X_train`**, aplicando únicamente `.transform()` sobre `X_val` y `X_test`.
 """
     report_path.write_text(content, encoding="utf-8")
 
@@ -673,11 +722,13 @@ def run_preprocessing(config: PreprocessingConfig) -> Dict[str, object]:
         model_family="linear",
         include_metro_distance=config.include_metro_distance,
         include_district=config.include_district,
+        trend_mode=config.trend_mode,
     )
     tree_pipeline = build_preprocessing_pipeline(
         model_family="tree",
         include_metro_distance=config.include_metro_distance,
         include_district=config.include_district,
+        trend_mode=config.trend_mode,
     )
     target_log_transformer = build_target_log_transformer()
 
@@ -812,6 +863,13 @@ def parse_args() -> PreprocessingConfig:
         action="store_true",
         help="Incluye metro_distance_min para experimentos de ablación.",
     )
+    parser.add_argument(
+        "--trend-mode",
+        choices=["capped", "drop", "raw"],
+        default="capped",
+        help="Tendencia temporal: 'capped' (congelada en el último valor de Train), "
+             "'drop' (sin tendencia) o 'raw' (posting_year lineal, extrapola).",
+    )
     args = parser.parse_args()
     return PreprocessingConfig(
         input_csv=args.input_csv,
@@ -820,6 +878,7 @@ def parse_args() -> PreprocessingConfig:
         report_path=args.report_path,
         verify_sha256=not args.skip_sha256,
         include_metro_distance=args.include_metro_distance,
+        trend_mode=args.trend_mode,
     )
 
 

@@ -273,6 +273,9 @@ def build_model_candidates_payload(
     Construye el diccionario estructurado que se guardará en `models/model_candidates.json`
     para que el paso 5 (`05_training_evaluation.py`) pueda consultarlo directamente.
     """
+    n_lin = analysis["n_linear_features"]
+    n_tree = analysis["n_tree_features"]
+    fb_lin = analysis["feature_breakdown_linear"]
     linear_data_files = {
         "X_train": "data/processed/X_train_linear.csv",
         "X_val": "data/processed/X_val_linear.csv",
@@ -326,7 +329,7 @@ def build_model_candidates_payload(
             "advantages": [
                 "Costo computacional nulo y ausencia total de sobreajuste.",
                 "La estrategia 'median' es robusta frente a la asimetría positiva del target (skewness = 1.821 en Train).",
-                "Permite cuantificar la ganancia predictiva real aportada por las 170 features.",
+                f"Permite cuantificar la ganancia predictiva real aportada por las {n_lin} features.",
             ],
             "limitations": [
                 "No captura ninguna relación espacial, física ni temporal (R² <= 0 por definición en media).",
@@ -366,11 +369,11 @@ def build_model_candidates_payload(
                 "Cumple de manera directa el requisito académico obligatorio del proyecto.",
                 "Máxima interpretabilidad económica de los coeficientes (elasticidades y semielasticidades en escala log1p).",
                 "Entrenamiento determinista y cerrado sin hiperparámetros de penalización que ajustar.",
-                "Capacidad de extrapolar la tendencia inflacionaria nominal a través de 'num__posting_year'.",
+                "Captura la tendencia temporal mediante 'num__posting_trend', congelada en el último valor visto en Train (no extrapola una inflación que ya no continúa).",
             ],
             "limitations": [
-                "Alta varianza en los estimadores ante multicolinealidad entre predictores físicos ('total_area', 'rooms', 'area_per_room') y temporales ('building_year', 'posting_year', 'building_age').",
-                "Sensible a la dependencia lineal exacta de las 150 columnas One-Hot ('okrug', 'district', 'building_type', 'renovation' codificadas sin descartar categoría base) y al anidamiento jerárquico entre 'district' (129) y 'okrug' (11).",
+                "Alta varianza en los estimadores ante multicolinealidad entre predictores físicos ('total_area', 'rooms', 'area_per_room').",
+                "La rama lineal de la etapa 03 ya no tiene dependencias exactas (drop='first', sin 'okrug' ni 'building_age'), pero persiste casi-colinealidad entre 'to_center_km' y las dummies de 'district' (district explica ~99% de su varianza): los coeficientes de ambos no son interpretables por separado.",
                 "Sensible a valores extremos en escala original (936 outliers > 1.5 IQR) si no se emplea la transformación log1p.",
             ],
         },
@@ -400,13 +403,12 @@ def build_model_candidates_payload(
                 "Alternativa lineal con regularización L2 diseñada específicamente para "
                 "mitigar la multicolinealidad documentada en el EDA (VIF = 4.546 en "
                 "'total_area' y 4.545 en 'rooms') y en el preprocesamiento (ratios "
-                "derivados 'area_per_room', 'floor_ratio', 'building_age', más la "
-                "colinealidad estructural entre las 11 dummies de 'okrug' y las 129 "
-                "dummies de 'district')."
+                "derivados 'area_per_room', 'floor_ratio') y en la casi-colinealidad "
+                "entre 'to_center_km' y las 129 dummies de 'district')."
             ),
             "advantages": [
                 "Estabiliza la inversión de la matriz X^T X añadiendo penalización L2 (alpha * ||w||_2^2).",
-                "Retiene las 170 variables repartiendo el peso entre predictores correlacionados sin perder información geográfica.",
+                f"Retiene las {n_lin} variables repartiendo el peso entre predictores correlacionados sin perder información geográfica.",
                 "Reduce la varianza de las predicciones en los distritos de baja frecuencia (< 1% cada uno).",
             ],
             "limitations": [
@@ -435,19 +437,19 @@ def build_model_candidates_payload(
                 "random_state": 42,
             },
             "search_grid": {
-                "alpha": [0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1, 1.0],
+                "alpha": [0.00001, 0.00005, 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.1, 1.0],
                 "max_iter": [10000],
             },
             "justification": (
                 "Alternativa lineal con penalización L1 orientada a la reducción de "
-                "dimensionalidad y selección automática de variables sobre las 170 "
-                "columnas de 'X_*_linear.csv', donde 150 provienen de One-Hot Encoding "
+                f"dimensionalidad y selección automática de variables sobre las {n_lin} "
+                f"columnas de 'X_*_linear.csv', donde {fb_lin['categorical_ohe_count']} provienen de One-Hot Encoding "
                 "y las 129 categorías de 'district' tienen frecuencias individuales "
                 "inferiores al 1% (entre 0.61% y 0.95%)."
             ),
             "advantages": [
                 "Produce modelos parsimoniosos (sparse) llevando exactamente a cero los coeficientes de distritos o variables redundantes.",
-                "Elimina automáticamente la redundancia de las categorías de referencia en los bloques One-Hot.",
+                "Anula automáticamente distritos y dummies con poca señal (pocos anuncios por distrito).",
                 "Facilita identificar el subconjunto mínimo de predictores con mayor impacto real.",
             ],
             "limitations": [
@@ -477,7 +479,7 @@ def build_model_candidates_payload(
                 "random_state": 42,
             },
             "search_grid": {
-                "alpha": [0.0001, 0.001, 0.01, 0.1, 1.0],
+                "alpha": [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0],
                 "l1_ratio": [0.1, 0.3, 0.5, 0.7, 0.9],
                 "max_iter": [10000],
             },
@@ -490,7 +492,7 @@ def build_model_candidates_payload(
             ),
             "advantages": [
                 "Supera la limitación de selección arbitraria de Lasso en presencia de grupos colineales (efecto de agrupación).",
-                "Combina esparsidad controlada con estabilidad numérica en espacios de 170 dimensiones.",
+                f"Combina esparsidad controlada con estabilidad numérica en espacios de {n_lin} dimensiones.",
                 "Permite explorar de forma continua el balance entre L1 y L2 mediante 'l1_ratio'.",
             ],
             "limitations": [
@@ -523,10 +525,10 @@ def build_model_candidates_payload(
             "linear": {
                 "status": "ACTIVE_FOR_STEP_05",
                 "description": (
-                    "Matrices preprocesadas con SimpleImputer(median) + RobustScaler "
-                    "en las 15 variables numéricas, imputación por moda en las 5 "
-                    "binarias y OneHotEncoder(drop='if_binary') en las 4 categóricas "
-                    "(170 columnas totales)."
+                    f"Matrices preprocesadas con SimpleImputer(median) + RobustScaler "
+                    f"en las {fb_lin['numeric_scaled_count']} variables numéricas, imputación por moda en las "
+                    f"{fb_lin['binary_count']} binarias y OneHotEncoder(drop='first') en las categóricas "
+                    f"({n_lin} columnas totales; sin 'okrug' ni 'building_age' para evitar dependencias exactas)."
                 ),
                 "files": linear_data_files,
             },
@@ -534,7 +536,7 @@ def build_model_candidates_payload(
                 "status": "EXCLUDED_NOT_REQUIRED_BY_LINEAR_DELIVERABLE",
                 "description": (
                     "Matrices preprocesadas sin escalado numérico generadas por "
-                    "03_preprocessing.py (170 columnas totales). No se asignan a "
+                    f"03_preprocessing.py ({n_tree} columnas totales). No se asignan a "
                     "ningún candidato activo para evitar modelos adicionales "
                     "innecesarios ajenos al requisito de regresión lineal."
                 ),
@@ -625,7 +627,7 @@ def generate_model_selection_report(
         )
         candidates_table_rows.append(
             f"| `{c['model_id']}` | `{c['model_name']}` (`{c['estimator_import']}`) | "
-            f"{role_label} | `{c['matrix_family']}` (`170` cols) | "
+            f"{role_label} | `{c['matrix_family']}` (`{payload['feature_space_summary']['n_features_linear'] if c['matrix_family'] == 'linear' else payload['feature_space_summary']['n_features_tree']}` cols) | "
             f"`{c['recommended_target_column']}` (y contraste con `monthly_rent_rub`) |"
         )
     candidates_table_md = "\n".join(candidates_table_rows)
@@ -656,7 +658,7 @@ def generate_model_selection_report(
 
     detailed_candidates_md = "\n\n".join(detailed_sections)
 
-    content = f"""# Informe de Selección de Modelos — Alquileres en Moscú (Etapa 04)
+    content = rf"""# Informe de Selección de Modelos — Alquileres en Moscú (Etapa 04)
 
 | Metadato | Valor |
 |---|---|
@@ -681,13 +683,13 @@ El análisis conjunto de `reports/eda_report.md`, `reports/preprocessing_report.
    - Al aplicar la transformación `np.log1p` (`monthly_rent_rub_log1p`), la asimetría se reduce a `{eda["target_skewness_log1p"]:.3f}` (`{eda["train_target_skewness_log1p"]:.3f}` en `Train`) y la curtosis a `{eda["target_kurtosis_log1p"]:.3f}`, estabilizando la varianza condicional. Por ello, los modelos lineales deben evaluarse en el paso 5 considerando tanto el objetivo en escala logarítmica (con retransformación $\exp(\hat{{y}}) - 1$ mediante `target_log_transformer.joblib`) como en escala original.
 2. **Multicolinealidad entre predictores físicos, espaciales y variables de ingeniería:**
    - El EDA identificó colinealidad entre `total_area` ($\text{{VIF}} = 4.546$, $R^2 = 0.78$) y `rooms` ($\text{{VIF}} = 4.545$, $R^2 = 0.78$), así como entre `to_center_km` ($\text{{VIF}} = 7.777$), `lat` ($\text{{VIF}} = 2.014$) y `lon` ($\text{{VIF}} = 2.051$).
-   - En la etapa 03, `DomainFeatureEngineer` incorporó ratios y diferencias exactas (`num__area_per_room`, `num__floor_ratio`, `num__building_age`) que agregan dependencia funcional con sus variables de origen (`total_area`, `rooms`, `floor`, `total_floors`, `posting_year`, `building_year`).
-   - Adicionalmente, las 4 variables categóricas (`okrug` con `{fb["okrug_ohe_count"]}` niveles, `district` con `{fb["district_ohe_count"]}` niveles, `building_type` con `{fb["building_type_ohe_count"]}` niveles y `renovation` con `{fb["renovation_ohe_count"]}` niveles) fueron codificadas con `OneHotEncoder(drop="if_binary")`. Al tener todas más de 2 niveles, se conservaron las `{fb["categorical_ohe_count"]}` columnas indicadoras completas (cuya suma por bloque es igual a 1) y existe dependencia jerárquica geográfica entre `district` ($\eta^2 = 0.6044$) y `okrug` ($\eta^2 = 0.4916$). Esto motiva directamente contrastar `LinearRegression` (OLS) frente a `Ridge` ($L_2$) y `ElasticNet` ($L_1 + L_2$).
-3. **Alta dimensionalidad (`170` columnas) y baja frecuencia por distrito:**
+   - En la etapa 03, `DomainFeatureEngineer` incorporó ratios y diferencias exactas (`num__area_per_room`, `num__floor_ratio`) que agregan dependencia funcional con sus variables de origen (`total_area`, `rooms`, `floor`, `total_floors`). `building_age` se excluye de la rama lineal por ser combinación de `building_year` y el tiempo.
+   - Las categóricas (`okrug` con `{fb["okrug_ohe_count"]}` niveles, `district` con `{fb["district_ohe_count"]}`, `building_type` con `{fb["building_type_ohe_count"]}` y `renovation` con `{fb["renovation_ohe_count"]}`) existen en el dataset, pero `okrug` es la suma exacta de sus `district` ($\eta^2 = 0.4916$ vs $0.6044$). La etapa 03 corrigió la rama lineal con `OneHotEncoder(drop="first")` y retirando `okrug`, de modo que la matriz tiene rango completo ({fb["categorical_ohe_count"]} dummies). Persiste casi-colinealidad entre `to_center_km` y `district` (~99% de la varianza de la distancia la explica el distrito). Esto motiva contrastar `LinearRegression` (OLS) frente a `Ridge` ($L_2$) y `ElasticNet` ($L_1 + L_2$).
+3. **Alta dimensionalidad (`{analysis["n_linear_features"]}` columnas) y baja frecuencia por distrito:**
    - La matriz `X_*_linear.csv` cuenta con `{fb["numeric_scaled_count"]}` variables numéricas escaladas con `RobustScaler`, `{fb["binary_count"]}` binarias y `{fb["categorical_ohe_count"]}` dummies categóricas.
    - Las `{fb["district_ohe_count"]}` categorías de `district` presentan frecuencias individuales menores al $1\%$ (entre $0.61\%$ y $0.95\%$). La regularización $L_1$ (`Lasso` y `ElasticNet`) resulta idónea para anular coeficientes de distritos con poca señal estadística y evitar sobreajuste.
 4. **Deriva temporal e inflación nominal (Partición Cronológica Estricta):**
-   - El dataset abarca de `{split_meta["train_date_min"]}` a `{split_meta["test_date_max"]}`. La partición cronológica (`Train`: `{split_meta["train_date_min"]}` a `{split_meta["train_date_max"]}`; `Val`: `{split_meta["val_date_min"]}` a `{split_meta["val_date_max"]}`; `Test`: `{split_meta["test_date_min"]}` a `{split_meta["test_date_max"]}`) exige que los modelos capturen la tendencia inflacionaria mediante `num__posting_year` sin fuga de información futura.
+   - El dataset abarca de `{split_meta["train_date_min"]}` a `{split_meta["test_date_max"]}`. La partición cronológica (`Train`: `{split_meta["train_date_min"]}` a `{split_meta["train_date_max"]}`; `Val`: `{split_meta["val_date_min"]}` a `{split_meta["val_date_max"]}`; `Test`: `{split_meta["test_date_min"]}` a `{split_meta["test_date_max"]}`) exige que los modelos capturen la tendencia inflacionaria sin fuga de información futura. El mercado se estancó desde 2024 (precio mediano por m² plano), por lo que la etapa 03 usa `num__posting_trend`, congelada en el último valor visto en Train, en lugar de extrapolar `posting_year` linealmente.
 
 ---
 
@@ -703,7 +705,7 @@ Siguiendo los requisitos académicos del proyecto, se selecciona **`LinearRegres
 - Aunque la etapa 03 generó matrices específicas sin escalado para árboles (`data/processed/X_*_tree.csv` y `models/preprocessing/preprocessor_tree.joblib`), **no se incluyen modelos de árboles (`RandomForest`, `ExtraTrees`, `LightGBM`, `XGBoost`, `CatBoost`)** en el conjunto de candidatos de la etapa 05 porque:
   1. La entrega académica exige explícitamente un **modelo final de regresión lineal**.
   2. Las directrices del proyecto establecen no incorporar modelos adicionales innecesarios fuera de la familia lineal requerida y su línea base.
-  3. Los modelos basados en árboles de decisión no extrapolan tendencias lineales fuera del soporte observado de `posting_year` (`2021`–`2024` en `Train` frente a `2024`–`2026` en `Val`/`Test`) a menos que se desestacionalice o deflacte externamente el objetivo.
+  3. Los modelos basados en árboles de decisión no extrapolan tendencias lineales fuera del soporte observado del tiempo (`2021`–`2024` en `Train` frente a `2024`–`2026` en `Val`/`Test`) a menos que se desestacionalice o deflacte externamente el objetivo.
 
 ---
 
