@@ -1,0 +1,97 @@
+{
+  "n_features": 47,
+  "rank_matriz_con_intercepto": 48,
+  "n_features_con_intercepto": 48,
+  "dependencias_exactas": [],
+  "n_dependencias_exactas": 0,
+  "condition_number_kappa": 7.8798325865777095,
+  "vif": {
+    "numeric__floor": 1.5588328885596352,
+    "numeric__total_floors": 1.5587795724720457,
+    "numeric__deposit_months": 1.001957420141556,
+    "numeric__lat": 2.4179465832356675,
+    "numeric__lon": 3.1583839149171866,
+    "numeric__building_age": 4.264305570642942,
+    "numeric__area_per_room": 1.7554717140097744,
+    "numeric__furnished": 1.002182251959315,
+    "numeric__pets_allowed": 1.001616341581256,
+    "spline__to_center_km_sp_0": 4.344948077984412,
+    "spline__to_center_km_sp_1": 5.3735357660737995,
+    "spline__to_center_km_sp_2": 5.44294368325,
+    "spline__to_center_km_sp_3": 1.6099280881510272,
+    "spline__to_center_km_sp_4": 1.2111518783114887,
+    "spline__to_center_km_sp_5": 1.0989609793864046,
+    "spline__to_center_km_sp_6": 1.00311191933358,
+    "spline__total_area_sp_0": 1.005115967467473,
+    "spline__total_area_sp_1": 1.0549243581775112,
+    "spline__total_area_sp_2": 1.6384721805668676,
+    "spline__total_area_sp_3": 1.0600996892377268,
+    "spline__total_area_sp_4": 1.0014061975350854,
+    "spline__total_area_sp_5": 1.001546358053473,
+    "spline__total_area_sp_6": 1.0014523626096705,
+    "spline__log_metro_sp_0": 1.0090427468236491,
+    "spline__log_metro_sp_1": 1.0864052035748972,
+    "spline__log_metro_sp_2": 1.072654774969603,
+    "spline__log_metro_sp_3": 1.0210321424687614,
+    "spline__log_metro_sp_4": 1.020525319402554,
+    "spline__log_metro_sp_5": 1.0017550491277205,
+    "spline__log_metro_sp_6": 1.0019856288638336,
+    "onehot__building_type_khrushchev": 1.8141352556419899,
+    "onehot__building_type_modern_panel": 2.703992981022858,
+    "onehot__building_type_monolith": 2.9116573710423452,
+    "onehot__building_type_panel": 1.7674838422505794,
+    "onehot__building_type_stalin": 1.6763962064525884,
+    "onehot__renovation_designer": 1.1020119323107613,
+    "onehot__renovation_euro": 1.1544746640543588,
+    "onehot__renovation_no_renovation": 1.0992353985736234,
+    "target_enc__district": 7.404505123353528,
+    "time__t_years_sp_0": 1.002138419766446,
+    "time__t_years_sp_1": 1.003739035802283,
+    "time__t_years_sp_2": 1.0023043035036865,
+    "time__t_years_sp_3": 1.0025677772188033,
+    "time__t_years_sp_4": 1.003169365848018,
+    "time__t_years_sp_5": 1.002671115785962,
+    "time__t_years_sp_6": 1.0023703467610179,
+    "time__t_years_sp_7": 1.0027953205345108
+  },
+  "vif_resumen": {
+    "n_inf": 0,
+    "n_mayor_5": 3,
+    "n_mayor_10": 0,
+    "mediana": 1.072654774969603,
+    "max_finito": 7.404505123353528
+  },
+  "modelo_referencia": {
+    "smearing_factor_Duan": 1.0051184570261606,
+    "particiones": {
+      "train": {
+        "n": 16012,
+        "RMSE_log": 0.10142374428050525,
+        "MAE_log": 0.08069790183304007,
+        "R2_log": 0.9651099847109267,
+        "MAPE_pct": 8.1682862935866
+      },
+      "valid": {
+        "n": 1995,
+        "RMSE_log": 0.10319327180646029,
+        "MAE_log": 0.08210852371972173,
+        "R2_log": 0.9634627404842017,
+        "MAPE_pct": 8.186781800054728
+      },
+      "test": {
+        "n": 1993,
+        "RMSE_log": 0.10421594375265014,
+        "MAE_log": 0.08388908739777086,
+        "R2_log": 0.9622190185580232,
+        "MAPE_pct": 8.24695559895222
+      }
+    }
+  },
+  "fix_v4": {
+    "exclude_numeric": [
+      "floor_ratio",
+      "rooms"
+    ],
+    "n_features_out": 47
+  }
+}

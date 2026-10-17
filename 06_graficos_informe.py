@@ -1,5 +1,5 @@
 """
-07_ablation_diagnostics.py — Diagnóstico completo del modelo ganador + ablación
+07_ablation_diagnostics.py — Diagnóstico completo del modelo ganador + ablación + VIF
 Proyecto: Alquileres en Moscú (regresión lineal, objetivo monthly_rent_rub, escala log1p)
 
 PARTE B (diagnóstico del modelo REAL; usa artifacts/best_model_04.joblib, ajustado solo con train):
@@ -8,13 +8,14 @@ PARTE B (diagnóstico del modelo REAL; usa artifacts/best_model_04.joblib, ajust
     aciertos ±10 %/±20 %, en escala log y en RUB (con smearing de Duan).
   * Semáforo de calidad con reglas prácticas (OK / ATENCIÓN / PROBLEMA).
   * Gráficas valid vs test: histograma de residuos, QQ-plot, Scale-Location, residuo vs ajustado,
-    real vs predicho, sesgo por mes, curva de aprendizaje estilo CV (07) y fuera de tiempo (07b) + barras de RMSE, top-20 coeficientes.
-  * Fórmula del modelo ganador (intercepto + Σ coef × término) y la de un Ridge compañero interpretable.
+    real vs predicho, sesgo por mes, curva de aprendizaje estilo CV (07) y fuera de tiempo (07b) + barras de RMSE,
+    top-20 coeficientes (08) y VIF de todas las variables (09).
+  * Fórmula del modelo ganador (ecuación algebraica + bloques + tabla de VIF) y la de un Ridge compañero interpretable.
 PARTE A (ablación, referencia con Ridge): baseline -> +tiempo -> +spline área -> +metro, controles
   negativos, métricas por segmento y sensibilidad "sin lujo" (solo diagnóstico).
 
 Requiere haber corrido 03 y 04 (y opcionalmente 05). Salidas:
-  reports/diagnostics/*.png, metricas_comparativas.{csv,md}, formula_ganadora.txt, coeficientes_*.csv
+  reports/diagnostics/*.png, metricas_comparativas.{csv,md}, formula_ganadora.txt, coeficientes_*.csv, vif_variables.csv
   reports/ablation_report.{json,md}, reports/figures/07_before_after.png
 
 Uso: python 07_ablation_diagnostics.py [--bundle artifacts/best_model_04.joblib] [--skip-ablation] [--lc-reps 3]
@@ -136,7 +137,7 @@ def luxury_sensitivity(y, pred, q=0.95):
 
 
 # --------------------------------------------------------------------------- #
-# Main                                                                        #
+# Main (Parte A - Ablación)                                                   #
 # --------------------------------------------------------------------------- #
 def run_ablation() -> None:
     OUT_DIR.mkdir(exist_ok=True)
@@ -273,7 +274,6 @@ def run_ablation() -> None:
     print("\nEscrito: reports/ablation_report.{json,md}, reports/figures/07_before_after.png")
 
 
-
 # =========================================================================== #
 # PARTE B — Diagnóstico completo del modelo ganador (valid vs test)           #
 # =========================================================================== #
@@ -403,8 +403,77 @@ def traffic_light(M: dict) -> list[tuple]:
 
 
 # --------------------------------------------------------------------------- #
-# Fórmula del modelo                                                          #
+# Fórmula del modelo y VIF                                                    #
 # --------------------------------------------------------------------------- #
+def compute_vif_table(P: dict) -> pd.DataFrame:
+    """
+    Calcula el VIF de todas las variables transformadas en train (Xt['train']).
+    Usa la diagonal de la inversa de la matriz de correlación (vía pinv para 
+    soportar colinealidad exacta/alta entre términos lineales y splines).
+    """
+    X = np.asarray(P["Xt"]["train"], dtype=float)
+    names = P["names"]
+
+    # Estandarizar columnas (media 0, std 1) para obtener matriz de correlación R
+    std = X.std(axis=0, ddof=1)
+    valid_cols = std > 1e-12
+    X_std = np.zeros_like(X)
+    X_std[:, valid_cols] = (X[:, valid_cols] - X[:, valid_cols].mean(axis=0)) / std[valid_cols]
+
+    n = X.shape[0]
+    R = (X_std.T @ X_std) / max(n - 1, 1)
+
+    # Diagonal de R^{-1} = VIF_j; R^2_j = 1 - 1/VIF_j
+    try:
+        R_inv = np.linalg.inv(R)
+    except np.linalg.LinAlgError:
+        R_inv = np.linalg.pinv(R)
+
+    vif_vals = np.diag(R_inv).copy()
+    vif_vals[~valid_cols] = np.nan
+    vif_vals = np.where(vif_vals < 1.0, np.inf, vif_vals)  # desbordes numéricos en colinealidad extrema
+    r2_vals = np.clip(1.0 - (1.0 / vif_vals), 0.0, 1.0)
+
+    # Mapear cada feature a su bloque del preprocesador
+    bloque_map = {}
+    for b_name, sl in P["pre"].output_indices_.items():
+        if b_name != "remainder":
+            for idx in range(sl.start, sl.stop):
+                bloque_map[idx] = b_name
+
+    rows = []
+    for i, term in enumerate(names):
+        v = float(vif_vals[i]) if np.isfinite(vif_vals[i]) else np.inf
+        est = "OK (<5)" if v < 5 else ("MODERADO (5-10)" if v < 10 else "ALTO (≥10)")
+        rows.append({
+            "bloque": bloque_map.get(i, "otro"),
+            "termino": term,
+            "VIF": v,
+            "R2_auxiliar": float(r2_vals[i]),
+            "tolerancia (1/VIF)": float(1.0 / v) if np.isfinite(v) and v > 0 else 0.0,
+            "estado_vif": est,
+        })
+    return pd.DataFrame(rows).sort_values("VIF", ascending=False).reset_index(drop=True)
+
+
+def linear_equation_string(tbl: pd.DataFrame, target_name: str = "ŷ_log") -> str:
+    """Genera la ecuación algebraica completa de la regresión lineal."""
+    b0 = tbl.attrs["intercepto"]
+    terms = [f"{b0:+.6f}"]
+    for _, r in tbl.iterrows():
+        sign = "+" if r.coeficiente >= 0 else "-"
+        terms.append(f"{sign} {abs(r.coeficiente):.6f}·[{r.termino}]")
+
+    one_line = f"{target_name} = " + " ".join(terms)
+    wrapped = f"{target_name} =\n    " + "\n  ".join(terms)
+    return (
+        "ECUACIÓN LINEAL COMPLETA (una línea):\n"
+        f"{one_line}\n\n"
+        "ECUACIÓN LINEAL DESGLOSADA:\n"
+        f"{wrapped}"
+    )
+
+
 def coefficient_table(P: dict, model=None) -> pd.DataFrame:
     model = model or P["model"]
     pre, names = P["pre"], P["names"]
@@ -430,13 +499,15 @@ def coefficient_table(P: dict, model=None) -> pd.DataFrame:
     return df
 
 
-def formula_text(tbl: pd.DataFrame, title: str, smear: float) -> str:
+def formula_text(tbl: pd.DataFrame, title: str, smear: float, vif_df: pd.DataFrame | None = None) -> str:
     b0 = tbl.attrs["intercepto"]
     L = [f"{'=' * 78}", title, f"{'=' * 78}",
          "(One-hot con drop='first': la categoría base —la omitida de cada variable— queda en el intercepto.)",
          "ŷ_log = log1p(renta_estimada) = b0 + Σ ( coeficiente_i × x_i )",
          "donde x_i son las columnas YA TRANSFORMADAS por el preprocesador de la etapa 03",
          "(imputación + escalado + splines + one-hot + target encoding).",
+         "",
+         linear_equation_string(tbl, target_name="log1p(monthly_rent_rub)"),
          "", f"  b0 (intercepto) = {b0:+.6f}"]
     for bloque, g in tbl.groupby("bloque", sort=False):
         L.append(f"\n  --- bloque «{bloque}» ({len(g)} términos) ---")
@@ -456,6 +527,14 @@ def formula_text(tbl: pd.DataFrame, title: str, smear: float) -> str:
               "entre sí (p. ej. log_metro aparece en el bloque numérico y en splines). La fórmula es exacta",
               "para predecir, pero los coeficientes individuales NO son interpretables; usa la fórmula",
               "del Ridge compañero (más abajo) para explicar efectos."]
+    if vif_df is not None:
+        L += ["", f"{'-' * 78}", "FACTOR DE INFLACIÓN DE LA VARIANZA (VIF) — TODAS LAS VARIABLES (Train)", f"{'-' * 78}",
+              "Regla práctica: VIF < 5 (baja colinealidad) | 5 ≤ VIF < 10 (moderada) | VIF ≥ 10 (alta).",
+              f"{'Término':<42s} | {'Bloque':<10s} | {'VIF':>12s} | {'R² aux':>8s} | {'Estado'}",
+              "-" * 92]
+        for _, r in vif_df.iterrows():
+            v_str = "INF (>1e6)" if (np.isinf(r.VIF) or r.VIF > 1e6) else f"{r.VIF:12.2f}"
+            L.append(f"{str(r.termino)[:42]:<42s} | {str(r.bloque)[:10]:<10s} | {v_str:>12s} | {r.R2_auxiliar:8.4f} | {r.estado_vif}")
     return "\n".join(L)
 
 
@@ -478,7 +557,7 @@ def _roll(x, y, k=120):
     return x[o], pd.Series(y[o]).rolling(k, center=True, min_periods=30).mean().to_numpy()
 
 
-def make_figures(P: dict, M: dict, tbl: pd.DataFrame, out: Path, lc_reps: int = 3) -> list[Path]:
+def make_figures(P: dict, M: dict, tbl: pd.DataFrame, vif_df: pd.DataFrame, out: Path, lc_reps: int = 3) -> list[Path]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -555,19 +634,26 @@ def make_figures(P: dict, M: dict, tbl: pd.DataFrame, out: Path, lc_reps: int = 
             ax.set_title(f"{s} — sesgo por mes (deriva temporal)"); ax.set_ylabel("Residuo medio (log)"); ax.legend(fontsize=8)
         pair("06_residuos_en_el_tiempo_valid_vs_test.png", "Deriva temporal: ¿el sesgo crece con el tiempo?", tdrift)
 
-    # --- Curva de aprendizaje ESTILO ORIGINAL: train vs CV (KFold 5 sin mezclar sobre train) ----
+    # --- Curva de aprendizaje ESTILO ORIGINAL: train vs CV ---------------------------------------
+    # BEGIN BLOQUE CURVA_APRENDIZAJE (único bloque del 07 modificado en esta corrección)
     from sklearn.model_selection import KFold, learning_curve
-    n_lc, tr_lc, cv_lc = learning_curve(clone(P["model"]), P["Xt"]["train"], np.asarray(P["ylog"]["train"]),
-                                        cv=KFold(5), train_sizes=np.linspace(0.15, 1.0, 8),
-                                        scoring="neg_root_mean_squared_error", n_jobs=1)
-    tr_m, cv_m = -tr_lc.mean(axis=1), -cv_lc.mean(axis=1)
+    LC_SEEDS = 5
+    tr_all, cv_all = [], []
+    for seed in range(LC_SEEDS):
+        n_lc, tr_lc, cv_lc = learning_curve(
+            clone(P["model"]), P["Xt"]["train"], np.asarray(P["ylog"]["train"]),
+            cv=KFold(5, shuffle=True, random_state=seed), train_sizes=np.linspace(0.15, 1.0, 8),
+            shuffle=True, random_state=seed, scoring="neg_root_mean_squared_error", n_jobs=1)
+        tr_all.append(-tr_lc.mean(axis=1)); cv_all.append(-cv_lc.mean(axis=1))
+    tr_m, cv_m = np.mean(tr_all, axis=0), np.mean(cv_all, axis=0)
+    # END BLOQUE CURVA_APRENDIZAJE
     fig, ax = plt.subplots(1, 2, figsize=(16, 5))
     ax[0].plot(n_lc, tr_m, "o-", color="#1f77b4", lw=2.5, label="RMSE Entrenamiento (Train)")
     ax[0].plot(n_lc, cv_m, "s-", color="#c2410c", lw=2.5, label="RMSE Validación Cruzada (CV)")
     ax[0].fill_between(n_lc, tr_m, cv_m, color="#c2410c", alpha=.10)
     ax[0].set_title("Curva de Aprendizaje (Diagnóstico de Overfitting)"); ax[0].set_xlabel("Cantidad de filas de entrenamiento")
     ax[0].set_ylabel("Error RMSE (escala log)"); ax[0].legend()
-    ax[0].text(0.02, 0.04, "CV = KFold(5) sobre train (mezcla periodos): mide ajuste 'dentro del tiempo'.\n"
+    ax[0].text(0.30, 0.04, "CV = KFold(5) mezclado, 5 semillas promediadas: aísla el efecto del tamaño de muestra.\n"
                "La brecha fuera de tiempo (train→valid/test) se ve en la figura 07b.", transform=ax[0].transAxes, fontsize=8, color="#555")
     ax[1].bar(["Fit (Entrenamiento)", "Valid", "Test"], vals_lc := [M[s]["RMSE_log"] for s in SPLIT_NAMES],
               color=["#6b6560", "#c2410c", "#2a2a2a"], width=.5)
@@ -612,6 +698,41 @@ def make_figures(P: dict, M: dict, tbl: pd.DataFrame, out: Path, lc_reps: int = 
     ax.axvline(0, color="k"); ax.set_xlabel("coeficiente × desv. estándar (efecto en log-renta por 1σ del término)")
     ax.set_title("Top 20 términos por efecto estandarizado (modelo ganador)")
     fig.tight_layout(); p = out / "08_coeficientes_top20.png"; fig.savefig(p, dpi=130); plt.close(fig); files.append(p)
+
+    # --- 09. Gráfico de VIF de TODAS las variables ------------------------------
+    vplot = vif_df.copy().iloc[::-1]  # invertir para que el mayor VIF quede arriba
+    CAP_VIF = 100.0  # tope visual en escala log para que los VIF infinitos/gigantes no aplasten el gráfico
+    vals_raw = vplot["VIF"].to_numpy()
+    vals_clipped = np.clip(np.where(np.isinf(vals_raw), CAP_VIF, vals_raw), 1.0, CAP_VIF)
+
+    bar_colors = np.where(
+        vals_raw >= 10, "#d62728",      # Rojo: colinealidad alta (≥10)
+        np.where(vals_raw >= 5, "#d97706", "#2563eb")  # Ámbar: moderada (5-10) | Azul: OK (<5)
+    )
+
+    fig_h = max(6.5, 0.30 * len(vplot) + 1.8)
+    fig, ax = plt.subplots(figsize=(11, fig_h))
+    bars = ax.barh(vplot["termino"], vals_clipped, color=bar_colors, alpha=0.88, edgecolor="white")
+
+    ax.set_xscale("log")
+    ax.axvline(5, color="#d97706", ls="--", lw=1.8, label="Umbral moderado (VIF = 5)")
+    ax.axvline(10, color="#d62728", ls="--", lw=2.0, label="Umbral severo (VIF = 10)")
+
+    for bar, raw_v, clip_v in zip(bars, vals_raw, vals_clipped):
+        lbl = f" >{CAP_VIF:.0f} (colin. estructural)" if (np.isinf(raw_v) or raw_v > CAP_VIF) else f" {raw_v:.2f}"
+        ax.text(clip_v * 1.04, bar.get_y() + bar.get_height() / 2, lbl,
+                va="center", ha="left", fontsize=8, color="#1f2937", fontweight="bold" if raw_v >= 10 else "normal")
+
+    ax.set_xlim(0.9, CAP_VIF * 2.8)
+    ax.set_xlabel("VIF (escala logarítmica, truncada en 100 para visualización)")
+    ax.set_title(f"Factor de Inflación de la Varianza (VIF) — Todas las variables (n = {len(vplot)})")
+    ax.legend(loc="lower right", fontsize=9)
+    fig.tight_layout()
+    p = out / "09_vif_todas_las_variables.png"
+    fig.savefig(p, dpi=130, bbox_inches="tight")
+    plt.close(fig)
+    files.append(p)
+
     return files
 
 
@@ -655,20 +776,30 @@ def run_diagnostics(bundle_path: Path, out: Path, lc_reps: int) -> None:
           "train y valid/test indica sobreajuste, y un sesgo creciente por mes indica deriva temporal.\n"]
     (out / "metricas_comparativas.md").write_text("\n".join(L), encoding="utf-8")
 
-    # 2) Fórmula ganadora + Ridge compañero
+    # 2) Fórmula ganadora + VIF + Ridge compañero
+    vif_df = compute_vif_table(P)
+    vif_df.to_csv(out / "vif_variables.csv", index=False, encoding="utf-8-sig")
+
     tbl = coefficient_table(P)
+    b0_ganador = tbl.attrs["intercepto"]  # Guardar antes del merge
+    tbl = tbl.merge(vif_df[["termino", "VIF", "R2_auxiliar", "estado_vif"]], on="termino", how="left")
+    tbl.attrs["intercepto"] = b0_ganador  # Restaurar después del merge
     tbl.to_csv(out / "coeficientes_ganador.csv", index=False, encoding="utf-8-sig")
-    txt = formula_text(tbl, f"FÓRMULA DEL MODELO GANADOR: {name}", P["smear"])
+    txt = formula_text(tbl, f"FÓRMULA DEL MODELO GANADOR: {name}", P["smear"], vif_df=vif_df)
+
     rid, a = ridge_companion(P)
     pr_v, pr_t = (np.sqrt(np.mean((np.asarray(P["ylog"][s]) - rid.predict(P["Xt"][s])) ** 2)) for s in ("valid", "test"))
     tbl_r = coefficient_table(P, rid)
+    b0_ridge = tbl_r.attrs["intercepto"]  # Guardar antes del merge
+    tbl_r = tbl_r.merge(vif_df[["termino", "VIF", "R2_auxiliar", "estado_vif"]], on="termino", how="left")
+    tbl_r.attrs["intercepto"] = b0_ridge  # Restaurar después del merge
     tbl_r.to_csv(out / "coeficientes_ridge_companero.csv", index=False, encoding="utf-8-sig")
     txt_r = formula_text(tbl_r, f"FÓRMULA COMPAÑERA INTERPRETABLE: Ridge(alpha={a})  —  RMSE_log valid {pr_v:.4f} | test {pr_t:.4f} "
                                 f"(ganador: valid {M['valid']['RMSE_log']:.4f} | test {M['test']['RMSE_log']:.4f})", P["smear"])
     (out / "formula_ganadora.txt").write_text(txt + "\n\n\n" + txt_r, encoding="utf-8")
 
-    # 3) Gráficas
-    files = make_figures(P, M, tbl, out, lc_reps)
+    # 3) Gráficas (incluye 09_vif_todas_las_variables.png)
+    files = make_figures(P, M, tbl, vif_df, out, lc_reps)
 
     # 4) Consola
     print("\n" + "=" * 78 + f"\nMÉTRICAS — {name}\n" + "=" * 78)
@@ -681,7 +812,7 @@ def run_diagnostics(bundle_path: Path, out: Path, lc_reps: int) -> None:
         print(f"  [{est:9s}] {lab:40s} valid {v:8.4f} | test {t:8.4f}   ({rule})")
     print("\n" + txt + "\n\n" + txt_r)
     print("\nEscrito en", out, ":", ", ".join(sorted(p.name for p in files)),
-          "+ metricas_comparativas.{csv,md}, formula_ganadora.txt, coeficientes_*.csv")
+          "+ metricas_comparativas.{csv,md}, formula_ganadora.txt, coeficientes_*.csv, vif_variables.csv")
 
 
 def main() -> None:

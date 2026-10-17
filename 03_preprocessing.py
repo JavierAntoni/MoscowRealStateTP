@@ -24,6 +24,15 @@ Cambios v2 (mejoras tras diagnóstico de residuos; ver reports/ablation_report.m
      lat-lon, Target Encoding por celdas de ~1-2 km, interacciones área x ubicación,
      renovación x ubicación, tiempo x ubicación, Box-Cox agresivo.
 
+Cambios v3 (multicolinealidad; ver reports/multicollinearity_report.md):
+  1. Una variable con spline ya no entra además como término lineal (la base B-spline + intercepto
+     contiene la recta): eliminaba 2 dependencias exactas (total_area y log_metro).
+  2. metro: UNA sola representación (spline de metro_distance_min con nudos por cuantiles).
+     Se quitan log_metro y log_metro_minus_log_center; floor y area_per_room (redundantes, medido en valid).
+  3. Cada bloque spline se ortogonaliza con PCA blanqueada (rotación ajustada solo en train: mismo espacio
+     de funciones, sin pérdida de información) -> desaparece el VIF interno de las bases B-spline.
+  4. --legacy-features reproduce el diseño anterior solo para comparar.
+
 Uso: python 03_preprocessing.py [--strict-hash] [--baseline] [--exclude-metro-distance]
          [--train-frac 0.80 --valid-frac 0.10 | --fixed-dates]
 """
@@ -41,6 +50,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (
@@ -82,6 +92,8 @@ class Config:
 
     # metro_distance_min: ahora ON por defecto (señal incremental demostrada en log/spline)
     include_metro_distance: bool = True
+    # True reproduce el diseño anterior (v2, con dependencias exactas) solo para comparar antes/después
+    legacy_features: bool = False
     # Deriva temporal: "spline" (recomendado) | "linear" (control negativo) | None
     time_mode: str | None = "spline"
     # Spline sobre total_area
@@ -98,6 +110,11 @@ SPLINE_COLS = ["to_center_km"]                     # decaimiento no lineal del p
 TIME_ORIGIN = pd.Timestamp("2021-01-01")           # inicio del dataset (índice temporal)
 TIME_COL = "t_years"
 TIME_SPLINE_KNOTS, TIME_SPLINE_DEGREE = 8, 2       # elegido sobre valid (ver ablation_report)
+# v3 (colinealidad): una variable representada por spline NO se repite como término lineal (la base
+# B-spline + intercepto ya contiene la recta). Nudos por cuantiles: la señal del metro está en 0-30 min,
+# zona poco densa donde los nudos uniformes no dan resolución. Elegido sobre valid (ver reporte).
+SPLINE_SPECS = {"to_center_km": ("quantile", 8), "total_area": ("quantile", 8),
+                "metro_distance_min": ("quantile", 12)}
 ONEHOT_COLS = ["building_type", "renovation"]      # 6 y 4 categorías
 TARGET_ENC_COLS = ["district"]                     # 129 categorías
 BOOL_AS_INT = ["furnished", "pets_allowed"]
@@ -219,26 +236,95 @@ def temporal_split(df: pd.DataFrame, cfg: Config) -> dict[str, pd.DataFrame]:
 # 3. Preprocesador (fit SOLO sobre train)                                     #
 # --------------------------------------------------------------------------- #
 def build_feature_lists(include_metro_distance: bool = True, time_mode: str | None = "spline",
-                       area_spline: bool = True) -> dict[str, list]:
-    numeric = NUMERIC_COLS + ENGINEERED_NUMERIC + BOOL_AS_INT
-    spline = list(SPLINE_COLS)
+                       area_spline: bool = True, legacy: bool = False) -> dict[str, list]:
+    if legacy:   # diseño v2: términos lineales Y splines de la misma variable (dependencias exactas)
+        numeric = NUMERIC_COLS + ENGINEERED_NUMERIC + BOOL_AS_INT
+        spline = list(SPLINE_COLS)
+        if area_spline:
+            spline.append("total_area")
+        if include_metro_distance:
+            numeric += ["log_metro", "log_metro_minus_log_center"]
+            spline += ["metro_distance_min", "log_metro"]
+        if time_mode == "linear":
+            numeric.append(TIME_COL)
+        return {"numeric": numeric, "spline": spline, "onehot": ONEHOT_COLS, "target_enc": TARGET_ENC_COLS,
+                "time_spline": [TIME_COL] if time_mode == "spline" else [], "legacy": True}
+
+    # Diseño v3. Variables descartadas por redundancia (misma información, medido en valid):
+    #   floor (= floor_ratio * total_floors), area_per_room (= total_area / rooms),
+    #   log_metro y log_metro_minus_log_center (transformaciones de la variable ya en spline).
+    numeric = ["rooms", "total_floors", "deposit_months", "lat", "lon",
+               "building_age", "floor_ratio"] + BOOL_AS_INT
+    spline = ["to_center_km"]
     if area_spline:
         spline.append("total_area")
+    else:
+        numeric.insert(0, "total_area")          # sin spline sí entra como término lineal
     if include_metro_distance:
-        numeric += ["log_metro", "log_metro_minus_log_center"]
-        spline += ["metro_distance_min", "log_metro"]
+        spline.append("metro_distance_min")
     if time_mode == "linear":
         numeric.append(TIME_COL)
-    return {
-        "numeric": numeric,
-        "spline": spline,
-        "onehot": ONEHOT_COLS,
-        "target_enc": TARGET_ENC_COLS,
-        "time_spline": [TIME_COL] if time_mode == "spline" else [],
-    }
+    return {"numeric": numeric, "spline": spline, "onehot": ONEHOT_COLS, "target_enc": TARGET_ENC_COLS,
+            "time_spline": [TIME_COL] if time_mode == "spline" else [], "legacy": False}
+
+
+def _spline_block_v3(cols: list[str]) -> ColumnTransformer:
+    """Un bloque por variable: B-spline (include_bias=False, sin la columna redundante con el
+    intercepto) + PCA blanqueado. La PCA es una ROTACIÓN del mismo espacio de funciones (no pierde
+    información; ajustada solo con train) que vuelve ortogonales las columnas del bloque y elimina el
+    VIF interno de las bases B-spline, que son inevitablemente solapadas."""
+    inner = []
+    for c in cols:
+        kind, nk = SPLINE_SPECS[c]
+        inner.append((c, Pipeline(steps=[
+            ("imputer", SimpleImputer(strategy="median")),
+            ("spline", SplineTransformer(n_knots=nk, degree=3, include_bias=False, knots=kind)),
+            ("orth", PCA(whiten=True, random_state=RANDOM_STATE)),
+        ]), [c]))
+    return ColumnTransformer(inner, remainder="drop")
 
 
 def build_preprocessor(features: dict[str, list]) -> ColumnTransformer:
+    if not features.get("legacy", False):
+        return _build_preprocessor_v3(features)
+    return _build_preprocessor_legacy(features)
+
+
+def _build_preprocessor_v3(features: dict[str, list]) -> ColumnTransformer:
+    numeric_pipe = Pipeline(steps=[
+        ("imputer", SimpleImputer(strategy="median")),   # mediana calculada en train
+        ("scaler", RobustScaler()),                      # robusto a los extremos conservados
+    ])
+    onehot_pipe = Pipeline(steps=[
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        # drop="first": evita la trampa de las dummies (las dummies suman 1 = intercepto)
+        ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False, drop="first")),
+        ("scaler", StandardScaler()),
+    ])
+    target_enc_pipe = Pipeline(steps=[
+        ("imputer", SimpleImputer(strategy="most_frequent")),
+        # cv interno: en fit_transform cada fila de train se codifica sin usar su propio target
+        ("target_enc", TargetEncoder(cv=5, smooth="auto", random_state=RANDOM_STATE)),
+        ("scaler", StandardScaler()),
+    ])
+    transformers = [
+        ("numeric", numeric_pipe, features["numeric"]),
+        ("spline", _spline_block_v3(features["spline"]), features["spline"]),
+        ("onehot", onehot_pipe, features["onehot"]),
+        ("target_enc", target_enc_pipe, features["target_enc"]),
+    ]
+    if features.get("time_spline"):
+        # extrapolation="constant": fuera del rango de train se mantiene el último nivel observado
+        time_pipe = Pipeline(steps=[
+            ("spline", SplineTransformer(n_knots=TIME_SPLINE_KNOTS, degree=TIME_SPLINE_DEGREE,
+                                         include_bias=False, extrapolation="constant")),
+            ("orth", PCA(whiten=True, random_state=RANDOM_STATE)),
+        ])
+        transformers.append(("time", time_pipe, features["time_spline"]))
+    return ColumnTransformer(transformers=transformers, remainder="drop", verbose_feature_names_out=True)
+
+
+def _build_preprocessor_legacy(features: dict[str, list]) -> ColumnTransformer:
     # Nota numérica (v2): las bases de splines y las dummies entran estandarizadas y el
     # one-hot usa drop="first". Sin esto la matriz de diseño queda casi singular
     # (cond ~ 1e17: las dummies suman 1 = intercepto y las bases B-spline suman ~1) y
@@ -299,6 +385,8 @@ def main() -> None:
                         help="Excluir metro_distance_min (por defecto se incluye)")
     parser.add_argument("--baseline", action="store_true",
                         help="Reproduce el preprocesamiento v1 (sin tiempo, sin spline de área, sin metro)")
+    parser.add_argument("--legacy-features", action="store_true",
+                        help="Diseño anterior (v2, con dependencias exactas); solo para comparar antes/después")
     parser.add_argument("--train-frac", type=float, default=0.80,
                         help="Fracción de filas para train (split cronológico). Default 0.80")
     parser.add_argument("--valid-frac", type=float, default=0.10,
@@ -310,9 +398,11 @@ def main() -> None:
     split_kw = dict(split_mode="fixed") if args.fixed_dates else dict(
         split_mode="proportional", train_frac=args.train_frac, valid_frac=args.valid_frac)
     if args.baseline:
-        cfg = Config(include_metro_distance=False, time_mode=None, area_spline=False, **split_kw)
+        cfg = Config(include_metro_distance=False, time_mode=None, area_spline=False,
+                     legacy_features=args.legacy_features, **split_kw)
     else:
-        cfg = Config(include_metro_distance=not args.exclude_metro_distance, **split_kw)
+        cfg = Config(include_metro_distance=not args.exclude_metro_distance,
+                     legacy_features=args.legacy_features, **split_kw)
     cfg.artifact_dir.mkdir(parents=True, exist_ok=True)
     cfg.report_dir.mkdir(parents=True, exist_ok=True)
 
@@ -324,8 +414,9 @@ def main() -> None:
     df = add_engineered_features(df)
 
     # Guard-rail de fugas: ninguna columna prohibida puede entrar a X
-    feature_lists = build_feature_lists(cfg.include_metro_distance, cfg.time_mode, cfg.area_spline)
-    used = set(sum(feature_lists.values(), []))
+    feature_lists = build_feature_lists(cfg.include_metro_distance, cfg.time_mode, cfg.area_spline,
+                                        legacy=cfg.legacy_features)
+    used = set(c for k in ("numeric", "spline", "onehot", "target_enc", "time_spline") for c in feature_lists[k])
     leaks = used & set(cfg.forbidden)
     assert not leaks, f"¡FUGA DETECTADA! Columnas prohibidas en features: {leaks}"
     assert cfg.target not in used, "El objetivo no puede ser feature"
@@ -374,7 +465,12 @@ def main() -> None:
         "excluidas": {
             "fuga_o_auditoria": list(cfg.forbidden),
             "semantica_inconsistente": ["metro_station", "metro_line"],
-            "redundantes": ["okrug (V=0.997 con district)", "building_year (se deriva building_age)"],
+            "redundantes": ["okrug (V=0.997 con district)", "building_year (se deriva building_age)"]
+                           + ([] if cfg.legacy_features else [
+                               "floor (= floor_ratio*total_floors; VIF 8.7 -> 1.0, mismo RMSE valid)",
+                               "area_per_room (= total_area/rooms; sin aporte sobre total_area en spline)",
+                               "log_metro y log_metro_minus_log_center (transformaciones de metro_distance_min)",
+                               "total_area y log_metro como términos lineales (la base spline ya los contiene)"]),
             "incluida_con_tratamiento_log_spline": ["metro_distance_min — include_metro_distance="
                                                     + str(cfg.include_metro_distance)],
         },
@@ -395,6 +491,7 @@ def main() -> None:
                 "y_mean": float(part[cfg.target].mean()),
             } for name, part in splits.items()
         },
+        "multicolinealidad_train": design_diagnostics(Xt["train"], feature_names),
         "feature_names_out": feature_names,
         "n_features_out": len(feature_names),
         "building_age_missing_por_split": {
@@ -407,6 +504,35 @@ def main() -> None:
     print(f"  - {cfg.artifact_dir / 'preprocessor_03.joblib'}")
     print(f"  - {cfg.report_dir / 'preprocessing_report.json'}")
     print("\nEtapa 03 completada. Listo para Etapa 04 (selección de modelos lineales).")
+
+
+def design_diagnostics(A: np.ndarray, names: list[str]) -> dict:
+    """Colinealidad de la matriz de diseño de TRAIN (con intercepto): VIF por columna
+    (1/(1-R²) de regresar cada columna sobre las demás), rango, número de condición
+    (con columnas de norma unitaria, medida estándar de Belsley) y columnas en dependencia exacta."""
+    n, p = A.shape
+    vif = np.empty(p)
+    for j in range(p):
+        o = np.c_[np.ones(n), np.delete(A, j, axis=1)]
+        r = A[:, j] - o @ np.linalg.lstsq(o, A[:, j], rcond=None)[0]
+        sst = np.sum((A[:, j] - A[:, j].mean()) ** 2)
+        one_m = np.sum(r ** 2) / sst if sst > 0 else 0.0
+        vif[j] = np.inf if one_m < 1e-10 else 1.0 / one_m
+    Ac = np.c_[np.ones(n), A]
+    sv = np.linalg.svd(Ac / np.linalg.norm(Ac, axis=0), compute_uv=False)
+    fin = np.isfinite(vif)
+    order = np.argsort(-np.where(fin, vif, 1e30))
+    return {
+        "n_columnas": int(p), "rango_con_intercepto": int(np.linalg.matrix_rank(Ac)),
+        "columnas_con_intercepto": int(p + 1),
+        "dependencias_exactas": int(p + 1 - np.linalg.matrix_rank(Ac)),
+        "numero_condicion_norma_unitaria": float(sv[0] / sv[-1]),
+        "vif_infinitos": int((~fin).sum()), "vif_mayor_5": int(((vif > 5) & fin).sum()),
+        "vif_mayor_10": int(((vif > 10) & fin).sum()),
+        "vif_max_finito": float(vif[fin].max()) if fin.any() else None,
+        "top_vif": {names[i]: (None if not fin[i] else round(float(vif[i]), 2)) for i in order[:10]},
+        "vif_por_columna": {names[i]: (None if not fin[i] else round(float(vif[i]), 3)) for i in range(p)},
+    }
 
 
 def _has_pyarrow() -> bool:
