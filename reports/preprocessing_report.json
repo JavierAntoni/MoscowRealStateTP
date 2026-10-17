@@ -1,0 +1,120 @@
+{
+  "etapa": "03_preprocessing",
+  "input_sha256_verificado": true,
+  "config": {
+    "input_csv": "data\\rentals_clean.csv",
+    "out_dir": "data\\processed\\splits",
+    "artifact_dir": "artifacts",
+    "report_dir": "reports",
+    "train_end": "2025-06-30",
+    "valid_end": "2025-12-31",
+    "target": "monthly_rent_rub",
+    "forbidden": "('id', 'dq_flags', 'rent_per_sqm')",
+    "include_metro_distance": "False"
+  },
+  "features": {
+    "numeric": [
+      "total_area",
+      "rooms",
+      "floor",
+      "total_floors",
+      "deposit_months",
+      "lat",
+      "lon",
+      "building_age",
+      "floor_ratio",
+      "area_per_room",
+      "furnished",
+      "pets_allowed"
+    ],
+    "spline": [
+      "to_center_km"
+    ],
+    "onehot": [
+      "building_type",
+      "renovation"
+    ],
+    "target_enc": [
+      "district"
+    ]
+  },
+  "excluidas": {
+    "fuga_o_auditoria": [
+      "id",
+      "dq_flags",
+      "rent_per_sqm"
+    ],
+    "semantica_inconsistente": [
+      "metro_station",
+      "metro_line"
+    ],
+    "redundantes": [
+      "okrug (V=0.997 con district)",
+      "building_year (se deriva building_age)"
+    ],
+    "condicional": [
+      "metro_distance_min (VIF 5.56) — include_metro_distance=False"
+    ]
+  },
+  "splits": {
+    "train": {
+      "n": 17008,
+      "date_min": "2021-01-01",
+      "date_max": "2025-06-30",
+      "y_median": 45400.0,
+      "y_mean": 51912.69990592662
+    },
+    "valid": {
+      "n": 1794,
+      "date_min": "2025-07-01",
+      "date_max": "2025-12-31",
+      "y_median": 47700.0,
+      "y_mean": 54597.99331103679
+    },
+    "test": {
+      "n": 1198,
+      "date_min": "2026-01-01",
+      "date_max": "2026-04-29",
+      "y_median": 48600.0,
+      "y_mean": 56575.20868113523
+    }
+  },
+  "feature_names_out": [
+    "numeric__total_area",
+    "numeric__rooms",
+    "numeric__floor",
+    "numeric__total_floors",
+    "numeric__deposit_months",
+    "numeric__lat",
+    "numeric__lon",
+    "numeric__building_age",
+    "numeric__floor_ratio",
+    "numeric__area_per_room",
+    "numeric__furnished",
+    "numeric__pets_allowed",
+    "spline__to_center_km_sp_0",
+    "spline__to_center_km_sp_1",
+    "spline__to_center_km_sp_2",
+    "spline__to_center_km_sp_3",
+    "spline__to_center_km_sp_4",
+    "spline__to_center_km_sp_5",
+    "spline__to_center_km_sp_6",
+    "onehot__building_type_brick",
+    "onehot__building_type_khrushchev",
+    "onehot__building_type_modern_panel",
+    "onehot__building_type_monolith",
+    "onehot__building_type_panel",
+    "onehot__building_type_stalin",
+    "onehot__renovation_cosmetic",
+    "onehot__renovation_designer",
+    "onehot__renovation_euro",
+    "onehot__renovation_no_renovation",
+    "target_enc__district"
+  ],
+  "n_features_out": 30,
+  "building_age_missing_por_split": {
+    "train": 339,
+    "valid": 0,
+    "test": 0
+  }
+}

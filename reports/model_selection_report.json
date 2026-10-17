@@ -1,0 +1,159 @@
+{
+  "etapa": "04_model_selection",
+  "fecha": "2026-10-16T21:23:26",
+  "familia_permitida": [
+    "ElasticNet",
+    "HuberRegressor",
+    "Lasso",
+    "LinearRegression",
+    "Ridge"
+  ],
+  "target_modelado": "log1p(monthly_rent_rub)",
+  "retransformacion": "Duan-smearing: y_hat = exp(y_hat_log)*S - 1",
+  "cv": {
+    "tipo": "TimeSeriesSplit",
+    "n_splits": 5,
+    "scoring": "neg_root_mean_squared_error (escala log)"
+  },
+  "criterio_seleccion": "rmse_log sobre split VALID",
+  "n_features": 30,
+  "resultados": {
+    "LinearRegression": {
+      "cv_rmse_log": 0.1623308140138709,
+      "best_params": {
+        "fit_intercept": true
+      },
+      "smearing_factor": 1.0113614696165751,
+      "valid_log": {
+        "rmse": 0.14653439839043908,
+        "mae": 0.1148580129928299,
+        "mape_pct": 1.056317457011448,
+        "r2": 0.9271902299286008
+      },
+      "valid_rub_naive_expm1": {
+        "rmse": 10376.840644219108,
+        "mae": 6686.190779189515,
+        "mape_pct": 10.832651311250508,
+        "r2": 0.8862234658674006
+      },
+      "valid_rub_smeared": {
+        "rmse": 10112.167363871928,
+        "mae": 6496.094462826153,
+        "mape_pct": 10.514754617090093,
+        "r2": 0.8919534502409815
+      }
+    },
+    "Ridge": {
+      "cv_rmse_log": 0.16233348111110196,
+      "best_params": {
+        "alpha": 1.0
+      },
+      "smearing_factor": 1.0113648791243832,
+      "valid_log": {
+        "rmse": 0.14652638145745944,
+        "mae": 0.11485906285154332,
+        "mape_pct": 1.0563313462991342,
+        "r2": 0.9271981965915257
+      },
+      "valid_rub_naive_expm1": {
+        "rmse": 10380.218673283087,
+        "mae": 6685.943850088183,
+        "mape_pct": 10.832240965178515,
+        "r2": 0.8861493772289625
+      },
+      "valid_rub_smeared": {
+        "rmse": 10114.648072432346,
+        "mae": 6495.491283350281,
+        "mape_pct": 10.514889708129612,
+        "r2": 0.8919004319575691
+      }
+    },
+    "Lasso": {
+      "cv_rmse_log": 0.1623558100069084,
+      "best_params": {
+        "alpha": 0.0001
+      },
+      "smearing_factor": 1.0113696808322667,
+      "valid_log": {
+        "rmse": 0.14656015298960956,
+        "mae": 0.11494557751516728,
+        "mape_pct": 1.0572405375266223,
+        "r2": 0.9271646338739674
+      },
+      "valid_rub_naive_expm1": {
+        "rmse": 10387.03517614529,
+        "mae": 6687.00680313928,
+        "mape_pct": 10.84165548093005,
+        "r2": 0.8859998008214216
+      },
+      "valid_rub_smeared": {
+        "rmse": 10119.592821311911,
+        "mae": 6494.221631703759,
+        "mape_pct": 10.519871350923495,
+        "r2": 0.8917947128320345
+      }
+    },
+    "ElasticNet": {
+      "cv_rmse_log": 0.1623430008657638,
+      "best_params": {
+        "alpha": 0.0001,
+        "l1_ratio": 0.5
+      },
+      "smearing_factor": 1.0113676624413646,
+      "valid_log": {
+        "rmse": 0.14651937004323742,
+        "mae": 0.11490402433184418,
+        "mape_pct": 1.056839946479912,
+        "r2": 0.9272051636834875
+      },
+      "valid_rub_naive_expm1": {
+        "rmse": 10383.139351561347,
+        "mae": 6684.974549634448,
+        "mape_pct": 10.837613755545997,
+        "r2": 0.8860853000005298
+      },
+      "valid_rub_smeared": {
+        "rmse": 10115.906418539154,
+        "mae": 6493.021135770318,
+        "mape_pct": 10.517491508358992,
+        "r2": 0.8918735333188734
+      }
+    },
+    "HuberRegressor": {
+      "cv_rmse_log": 0.16272227371379758,
+      "best_params": {
+        "alpha": 0.01,
+        "epsilon": 1.5
+      },
+      "smearing_factor": 1.0105054545342789,
+      "valid_log": {
+        "rmse": 0.14613967169710937,
+        "mae": 0.11431848434937822,
+        "mape_pct": 1.0511994069859592,
+        "r2": 0.9275819638968414
+      },
+      "valid_rub_naive_expm1": {
+        "rmse": 10370.437521235883,
+        "mae": 6667.779400172684,
+        "mape_pct": 10.78934005054172,
+        "r2": 0.8863638362159734
+      },
+      "valid_rub_smeared": {
+        "rmse": 10125.412869758837,
+        "mae": 6490.043171449784,
+        "mape_pct": 10.493853582272749,
+        "r2": 0.8916702135323953
+      }
+    }
+  },
+  "ranking": [
+    "HuberRegressor",
+    "ElasticNet",
+    "Ridge",
+    "LinearRegression",
+    "Lasso"
+  ],
+  "ganador": "HuberRegressor",
+  "test_intacto": true,
+  "etapa03_ok": true
+}
