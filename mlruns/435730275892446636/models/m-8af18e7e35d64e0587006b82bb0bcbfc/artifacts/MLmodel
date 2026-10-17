@@ -1,0 +1,23 @@
+artifact_path: file:///E:/FACULTAD%20UTN%20FRT/5-QUINTO%20A%C3%91O/introduccion%20a%20analisis%20de%20datos/1er%20parcial%20v2/mlruns/435730275892446636/models/m-8af18e7e35d64e0587006b82bb0bcbfc/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.skops
+    predict_fn: predict
+    python_version: 3.14.0
+  sklearn:
+    code: null
+    pickled_model: model.skops
+    serialization_format: skops
+    sklearn_version: 1.9.1
+    skops_trusted_types: null
+mlflow_version: 3.17.1
+model_id: m-8af18e7e35d64e0587006b82bb0bcbfc
+model_size_bytes: 25505
+model_uuid: m-8af18e7e35d64e0587006b82bb0bcbfc
+prompts: null
+run_id: 900929dc09d34afcbd29236edd913d76
+utc_time_created: '2026-10-17 01:42:48.143427'

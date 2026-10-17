@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/FACULTAD%20UTN%20FRT/5-QUINTO%20A%C3%91O/introduccion%20a%20analisis%20de%20datos/1er%20parcial%20v2/mlruns/435730275892446636/900929dc09d34afcbd29236edd913d76/artifacts
+end_time: 1792201375925
+entry_point_name: ''
+experiment_id: '435730275892446636'
+lifecycle_stage: active
+run_id: 900929dc09d34afcbd29236edd913d76
+run_name: paso05-huberregressor-train_valid
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1792201365770
+status: 3
+tags: []
+user_id: Usuario

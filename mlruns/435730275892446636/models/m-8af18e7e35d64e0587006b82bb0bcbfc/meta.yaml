@@ -1,0 +1,10 @@
+artifact_location: file:///E:/FACULTAD%20UTN%20FRT/5-QUINTO%20A%C3%91O/introduccion%20a%20analisis%20de%20datos/1er%20parcial%20v2/mlruns/435730275892446636/models/m-8af18e7e35d64e0587006b82bb0bcbfc/artifacts
+creation_timestamp: 1792201367708
+experiment_id: '435730275892446636'
+last_updated_timestamp: 1792201375895
+model_id: m-8af18e7e35d64e0587006b82bb0bcbfc
+model_type: null
+name: model
+source_run_id: 900929dc09d34afcbd29236edd913d76
+status: 2
+status_message: null

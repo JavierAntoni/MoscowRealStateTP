@@ -1,0 +1,15 @@
+{
+  "experimento": "primer parcial",
+  "tracking_uri": "file:./mlruns",
+  "run_ganador": "900929dc09d34afcbd29236edd913d76",
+  "modelo": "HuberRegressor",
+  "fit_set": "train_valid",
+  "smearing_factor_S": 1.0101378322966656,
+  "valid_rmse_log": 0.1428394430090898,
+  "valid_rmse_rub_smeared": 9983.430702892161,
+  "valid_mape_rub": 10.304190201102378,
+  "test_rmse_log": 0.14689391157476353,
+  "test_rmse_rub_smeared": 10454.4385266372,
+  "test_mape_rub": 10.652926520288748,
+  "test_evaluaciones": 1
+}
