@@ -6,11 +6,16 @@
     "out_dir": "data\\processed\\splits",
     "artifact_dir": "artifacts",
     "report_dir": "reports",
+    "split_mode": "proportional",
+    "train_frac": "0.8",
+    "valid_frac": "0.1",
     "train_end": "2025-06-30",
     "valid_end": "2025-12-31",
     "target": "monthly_rent_rub",
     "forbidden": "('id', 'dq_flags', 'rent_per_sqm')",
-    "include_metro_distance": "False"
+    "include_metro_distance": "True",
+    "time_mode": "spline",
+    "area_spline": "True"
   },
   "features": {
     "numeric": [
@@ -25,10 +30,15 @@
       "floor_ratio",
       "area_per_room",
       "furnished",
-      "pets_allowed"
+      "pets_allowed",
+      "log_metro",
+      "log_metro_minus_log_center"
     ],
     "spline": [
-      "to_center_km"
+      "to_center_km",
+      "total_area",
+      "metro_distance_min",
+      "log_metro"
     ],
     "onehot": [
       "building_type",
@@ -36,6 +46,9 @@
     ],
     "target_enc": [
       "district"
+    ],
+    "time_spline": [
+      "t_years"
     ]
   },
   "excluidas": {
@@ -52,31 +65,41 @@
       "okrug (V=0.997 con district)",
       "building_year (se deriva building_age)"
     ],
-    "condicional": [
-      "metro_distance_min (VIF 5.56) — include_metro_distance=False"
+    "incluida_con_tratamiento_log_spline": [
+      "metro_distance_min — include_metro_distance=True"
     ]
+  },
+  "split_cutoffs": {
+    "split_mode": "proportional",
+    "split_train_end": "2025-03-25",
+    "split_valid_start": "2025-03-26",
+    "split_valid_end": "2025-10-12",
+    "split_test_start": "2025-10-13"
   },
   "splits": {
     "train": {
-      "n": 17008,
+      "n": 16012,
+      "pct": 80.06,
       "date_min": "2021-01-01",
-      "date_max": "2025-06-30",
-      "y_median": 45400.0,
-      "y_mean": 51912.69990592662
+      "date_max": "2025-03-25",
+      "y_median": 45300.0,
+      "y_mean": 51695.372220834375
     },
     "valid": {
-      "n": 1794,
-      "date_min": "2025-07-01",
-      "date_max": "2025-12-31",
-      "y_median": 47700.0,
-      "y_mean": 54597.99331103679
+      "n": 1995,
+      "pct": 9.97,
+      "date_min": "2025-03-26",
+      "date_max": "2025-10-12",
+      "y_median": 49200.0,
+      "y_mean": 55682.00501253133
     },
     "test": {
-      "n": 1198,
-      "date_min": "2026-01-01",
+      "n": 1993,
+      "pct": 9.96,
+      "date_min": "2025-10-13",
       "date_max": "2026-04-29",
-      "y_median": 48600.0,
-      "y_mean": 56575.20868113523
+      "y_median": 47700.0,
+      "y_mean": 55105.46914199699
     }
   },
   "feature_names_out": [
@@ -92,6 +115,8 @@
     "numeric__area_per_room",
     "numeric__furnished",
     "numeric__pets_allowed",
+    "numeric__log_metro",
+    "numeric__log_metro_minus_log_center",
     "spline__to_center_km_sp_0",
     "spline__to_center_km_sp_1",
     "spline__to_center_km_sp_2",
@@ -99,19 +124,46 @@
     "spline__to_center_km_sp_4",
     "spline__to_center_km_sp_5",
     "spline__to_center_km_sp_6",
-    "onehot__building_type_brick",
+    "spline__total_area_sp_0",
+    "spline__total_area_sp_1",
+    "spline__total_area_sp_2",
+    "spline__total_area_sp_3",
+    "spline__total_area_sp_4",
+    "spline__total_area_sp_5",
+    "spline__total_area_sp_6",
+    "spline__metro_distance_min_sp_0",
+    "spline__metro_distance_min_sp_1",
+    "spline__metro_distance_min_sp_2",
+    "spline__metro_distance_min_sp_3",
+    "spline__metro_distance_min_sp_4",
+    "spline__metro_distance_min_sp_5",
+    "spline__metro_distance_min_sp_6",
+    "spline__log_metro_sp_0",
+    "spline__log_metro_sp_1",
+    "spline__log_metro_sp_2",
+    "spline__log_metro_sp_3",
+    "spline__log_metro_sp_4",
+    "spline__log_metro_sp_5",
+    "spline__log_metro_sp_6",
     "onehot__building_type_khrushchev",
     "onehot__building_type_modern_panel",
     "onehot__building_type_monolith",
     "onehot__building_type_panel",
     "onehot__building_type_stalin",
-    "onehot__renovation_cosmetic",
     "onehot__renovation_designer",
     "onehot__renovation_euro",
     "onehot__renovation_no_renovation",
-    "target_enc__district"
+    "target_enc__district",
+    "time__t_years_sp_0",
+    "time__t_years_sp_1",
+    "time__t_years_sp_2",
+    "time__t_years_sp_3",
+    "time__t_years_sp_4",
+    "time__t_years_sp_5",
+    "time__t_years_sp_6",
+    "time__t_years_sp_7"
   ],
-  "n_features_out": 30,
+  "n_features_out": 59,
   "building_age_missing_por_split": {
     "train": 339,
     "valid": 0,

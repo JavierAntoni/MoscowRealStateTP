@@ -904,8 +904,10 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--metric", default="rmse_log",
                         choices=["rmse_log", "mae_log", "rmse_rub", "mae_rub"],
                         help="Métrica de selección declarada (se registra como param).")
-    parser.add_argument("--fit-on", default="train_valid", choices=["train", "train_valid"],
-                        help="Conjunto de reentrenamiento (default: train_valid, documentado).")
+    parser.add_argument("--fit-on", default="train", choices=["train", "train_valid"],
+                        help="Conjunto de ajuste. Default: train (valid y test quedan SIN contaminar, "
+                             "coherente con 03/04/07). 'train_valid' reentrena con train+valid para el modelo "
+                             "final de despliegue: en ese caso las métricas de valid son in-sample.")
     parser.add_argument("--compare-all", action="store_true",
                         help="Además del ganador, reentrena toda la allowlist para "
                              "comparación en valid (test SOLO se evalúa en el ganador).")
@@ -959,7 +961,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         LOGGER.info("SHA-256 de %s verificado (solo lectura).", CLEAN_CSV)
 
     # --- Split temporal declarado (params) ---------------------------------- #
+    # Los cortes reales los escribe 03_preprocessing.py (split_cutoffs); si falta el reporte
+    # se usan las fechas de la v1 (SPLIT_CUTOFFS) como respaldo.
     split_params = dict(SPLIT_CUTOFFS)
+    try:
+        _rep = json.loads((reports_dir / "preprocessing_report.json").read_text(encoding="utf-8"))
+        _sc = _rep.get("split_cutoffs", {})
+        split_params.update({k: v for k, v in _sc.items() if k in SPLIT_CUTOFFS})
+    except Exception as exc:  # noqa: BLE001 - metadato: nunca debe romper el entrenamiento
+        print(f"[AVISO] No se pudieron leer los cortes de preprocessing_report.json: {exc}")
 
     # --- Datos --------------------------------------------------------------- #
     LOGGER.info("Cargando splits desde %s ...", data_dir)

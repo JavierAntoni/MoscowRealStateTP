@@ -1,0 +1,183 @@
+==============================================================================
+FÓRMULA DEL MODELO GANADOR: LinearRegression
+==============================================================================
+(One-hot con drop='first': la categoría base —la omitida de cada variable— queda en el intercepto.)
+ŷ_log = log1p(renta_estimada) = b0 + Σ ( coeficiente_i × x_i )
+donde x_i son las columnas YA TRANSFORMADAS por el preprocesador de la etapa 03
+(imputación + escalado + splines + one-hot + target encoding).
+
+  b0 (intercepto) = +20.371382
+
+  --- bloque «numeric» (14 términos) ---
+     +0.162860 × numeric__total_area
+     +0.000052 × numeric__rooms
+     +0.001141 × numeric__floor
+     -0.001635 × numeric__total_floors
+     -0.000115 × numeric__deposit_months
+     +0.002758 × numeric__lat
+     -0.018188 × numeric__lon
+     +0.006464 × numeric__building_age
+     -0.001171 × numeric__floor_ratio
+     -0.002155 × numeric__area_per_room
+     +0.077450 × numeric__furnished
+     -0.026976 × numeric__pets_allowed
+    +66.008557 × numeric__log_metro
+     -0.233684 × numeric__log_metro_minus_log_center
+
+  --- bloque «spline» (28 términos) ---
+     +0.061673 × spline__to_center_km_sp_0
+     +0.007272 × spline__to_center_km_sp_1
+     -0.036352 × spline__to_center_km_sp_2
+     -0.066559 × spline__to_center_km_sp_3
+     -0.072396 × spline__to_center_km_sp_4
+     -0.062376 × spline__to_center_km_sp_5
+     -0.064536 × spline__to_center_km_sp_6
+     -0.005218 × spline__total_area_sp_0
+     -0.053662 × spline__total_area_sp_1
+     -0.087364 × spline__total_area_sp_2
+     -0.035278 × spline__total_area_sp_3
+     -0.016525 × spline__total_area_sp_4
+     -0.002483 × spline__total_area_sp_5
+     -0.000363 × spline__total_area_sp_6
+    +10.138235 × spline__metro_distance_min_sp_0
+    +38.425037 × spline__metro_distance_min_sp_1
+    +23.887508 × spline__metro_distance_min_sp_2
+    +16.249320 × spline__metro_distance_min_sp_3
+     +8.125660 × spline__metro_distance_min_sp_4
+     +4.353394 × spline__metro_distance_min_sp_5
+     +0.692553 × spline__metro_distance_min_sp_6
+     +0.249492 × spline__log_metro_sp_0
+     -0.686420 × spline__log_metro_sp_1
+     -9.667839 × spline__log_metro_sp_2
+    -26.508320 × spline__log_metro_sp_3
+    -35.963153 × spline__log_metro_sp_4
+    -47.929427 × spline__log_metro_sp_5
+    -25.113284 × spline__log_metro_sp_6
+
+  --- bloque «onehot» (8 términos) ---
+     -0.076373 × onehot__building_type_khrushchev
+     -0.016170 × onehot__building_type_modern_panel
+     +0.022062 × onehot__building_type_monolith
+     -0.055203 × onehot__building_type_panel
+     +0.027255 × onehot__building_type_stalin
+     +0.093674 × onehot__renovation_designer
+     +0.068705 × onehot__renovation_euro
+     -0.031109 × onehot__renovation_no_renovation
+
+  --- bloque «target_enc» (1 términos) ---
+     +0.370783 × target_enc__district
+
+  --- bloque «time» (8 términos) ---
+     -0.021679 × time__t_years_sp_0
+     -0.044752 × time__t_years_sp_1
+     -0.017981 × time__t_years_sp_2
+     -0.027921 × time__t_years_sp_3
+     -0.004415 × time__t_years_sp_4
+     +0.004411 × time__t_years_sp_5
+     +0.015630 × time__t_years_sp_6
+     +0.008132 × time__t_years_sp_7
+
+Retransformación a RUB (corrección de Duan):
+  renta_RUB = exp(ŷ_log) × S − 1,   con S = 1.004815
+
+Lectura de efectos (solo bloques numeric/onehot; ver coeficientes.csv):
+  efecto_pct_por_unidad = (exp(coef/escala) − 1) × 100  → % de cambio de la renta por unidad
+  original, manteniendo lo demás fijo. CUIDADO: total_area, log_metro y to_center_km entran a la vez
+  como término lineal Y como spline, así que su efecto total está repartido entre ambos y el %
+  del término lineal es solo una parte. Para splines y tiempo NO hay efecto por unidad: la
+  contribución es una curva (ver gráficas) y los coeficientes sueltos no se interpretan.
+
+AVISO DE COLINEALIDAD: |coef| máximo = 66.0. Hay coeficientes grandes que se cancelan
+entre sí (p. ej. log_metro aparece en el bloque numérico y en splines). La fórmula es exacta
+para predecir, pero los coeficientes individuales NO son interpretables; usa la fórmula
+del Ridge compañero (más abajo) para explicar efectos.
+
+
+==============================================================================
+FÓRMULA COMPAÑERA INTERPRETABLE: Ridge(alpha=0.01)  —  RMSE_log valid 0.1023 | test 0.1032 (ganador: valid 0.1015 | test 0.1023)
+==============================================================================
+(One-hot con drop='first': la categoría base —la omitida de cada variable— queda en el intercepto.)
+ŷ_log = log1p(renta_estimada) = b0 + Σ ( coeficiente_i × x_i )
+donde x_i son las columnas YA TRANSFORMADAS por el preprocesador de la etapa 03
+(imputación + escalado + splines + one-hot + target encoding).
+
+  b0 (intercepto) = +10.763810
+
+  --- bloque «numeric» (14 términos) ---
+     +0.156620 × numeric__total_area
+     +0.000373 × numeric__rooms
+     +0.001792 × numeric__floor
+     -0.002255 × numeric__total_floors
+     +0.000025 × numeric__deposit_months
+     +0.003021 × numeric__lat
+     -0.017762 × numeric__lon
+     +0.007240 × numeric__building_age
+     -0.001826 × numeric__floor_ratio
+     -0.001933 × numeric__area_per_room
+     +0.077205 × numeric__furnished
+     -0.027120 × numeric__pets_allowed
+     +0.855996 × numeric__log_metro
+     -0.253197 × numeric__log_metro_minus_log_center
+
+  --- bloque «spline» (28 términos) ---
+     +0.070043 × spline__to_center_km_sp_0
+     +0.039225 × spline__to_center_km_sp_1
+     -0.005188 × spline__to_center_km_sp_2
+     -0.042367 × spline__to_center_km_sp_3
+     -0.052921 × spline__to_center_km_sp_4
+     -0.050408 × spline__to_center_km_sp_5
+     -0.052159 × spline__to_center_km_sp_6
+     -0.005227 × spline__total_area_sp_0
+     -0.053867 × spline__total_area_sp_1
+     -0.086156 × spline__total_area_sp_2
+     -0.033213 × spline__total_area_sp_3
+     -0.012685 × spline__total_area_sp_4
+     +0.000367 × spline__total_area_sp_5
+     +0.000700 × spline__total_area_sp_6
+     -1.108736 × spline__metro_distance_min_sp_0
+     +1.528039 × spline__metro_distance_min_sp_1
+     +1.363510 × spline__metro_distance_min_sp_2
+     +0.698162 × spline__metro_distance_min_sp_3
+     +0.251148 × spline__metro_distance_min_sp_4
+     +0.080206 × spline__metro_distance_min_sp_5
+     +0.000286 × spline__metro_distance_min_sp_6
+     +0.013946 × spline__log_metro_sp_0
+     +0.064681 × spline__log_metro_sp_1
+     +0.125034 × spline__log_metro_sp_2
+     +0.008165 × spline__log_metro_sp_3
+     -0.672459 × spline__log_metro_sp_4
+     -1.663068 × spline__log_metro_sp_5
+     +0.520227 × spline__log_metro_sp_6
+
+  --- bloque «onehot» (8 términos) ---
+     -0.076513 × onehot__building_type_khrushchev
+     -0.015856 × onehot__building_type_modern_panel
+     +0.022514 × onehot__building_type_monolith
+     -0.055208 × onehot__building_type_panel
+     +0.027173 × onehot__building_type_stalin
+     +0.093737 × onehot__renovation_designer
+     +0.068728 × onehot__renovation_euro
+     -0.031205 × onehot__renovation_no_renovation
+
+  --- bloque «target_enc» (1 términos) ---
+     +0.370500 × target_enc__district
+
+  --- bloque «time» (8 términos) ---
+     -0.021705 × time__t_years_sp_0
+     -0.044597 × time__t_years_sp_1
+     -0.017981 × time__t_years_sp_2
+     -0.027898 × time__t_years_sp_3
+     -0.004542 × time__t_years_sp_4
+     +0.004405 × time__t_years_sp_5
+     +0.015744 × time__t_years_sp_6
+     +0.008140 × time__t_years_sp_7
+
+Retransformación a RUB (corrección de Duan):
+  renta_RUB = exp(ŷ_log) × S − 1,   con S = 1.004815
+
+Lectura de efectos (solo bloques numeric/onehot; ver coeficientes.csv):
+  efecto_pct_por_unidad = (exp(coef/escala) − 1) × 100  → % de cambio de la renta por unidad
+  original, manteniendo lo demás fijo. CUIDADO: total_area, log_metro y to_center_km entran a la vez
+  como término lineal Y como spline, así que su efecto total está repartido entre ambos y el %
+  del término lineal es solo una parte. Para splines y tiempo NO hay efecto por unidad: la
+  contribución es una curva (ver gráficas) y los coeficientes sueltos no se interpretan.

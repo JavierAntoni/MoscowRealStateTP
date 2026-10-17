@@ -9,7 +9,23 @@ Salida  : data/processed/splits/*.parquet  (X/y por split temporal)
 
 Requisitos: python>=3.10, pandas>=2.0, scikit-learn>=1.3, joblib, pyarrow (opcional)
 
-Uso: python 03_preprocessing.py [--strict-hash] [--include-metro-distance]
+Cambios v2 (mejoras tras diagnóstico de residuos; ver reports/ablation_report.md):
+  1. Deriva temporal  -> t_years (años desde 2021-01-01) con SplineTransformer y
+                         extrapolation="constant": captura la subida 2021-2024 y, fuera
+                         del rango de train, mantiene el último nivel (no extrapola
+                         una tendencia lineal que sobreestimaría).
+  2. No linealidad    -> splines en total_area (curvatura de la superficie).
+  3. Señal de metro   -> metro_distance_min ENTRA por defecto, en escala log + spline.
+                         El criterio del EDA (§7) era "usar si aporta señal incremental":
+                         en bruto r=0.90 con to_center_km (VIF 5.56), en log solo 0.62, y
+                         reduce el RMSE de test de ~0.126 a ~0.103. metro_station/line
+                         siguen excluidas (no aportan, semántica inconsistente).
+  4. Se probaron y DESCARTARON (sin ganancia medida): splines/polares/interacciones de
+     lat-lon, Target Encoding por celdas de ~1-2 km, interacciones área x ubicación,
+     renovación x ubicación, tiempo x ubicación, Box-Cox agresivo.
+
+Uso: python 03_preprocessing.py [--strict-hash] [--baseline] [--exclude-metro-distance]
+         [--train-frac 0.80 --valid-frac 0.10 | --fixed-dates]
 """
 from __future__ import annotations
 
@@ -31,6 +47,7 @@ from sklearn.preprocessing import (
     OneHotEncoder,
     RobustScaler,
     SplineTransformer,
+    StandardScaler,
     TargetEncoder,
 )
 
@@ -47,9 +64,15 @@ class Config:
     artifact_dir: Path = Path("artifacts")
     report_dir: Path = Path("reports")
 
-    # Split temporal (date_posted: 2021-01-01 -> 2026-04-29)
-    train_end: str = "2025-06-30"
-    valid_end: str = "2025-12-31"   # test = posterior a esta fecha
+    # Split temporal (date_posted: 2021-01-01 -> 2026-04-29), SIEMPRE cronológico.
+    # split_mode="proportional": cortes por fracción de filas ordenadas por fecha
+    #   (por defecto 80/10/10; las filas de un mismo día no se separan entre splits).
+    # split_mode="fixed": cortes por fecha fija (split v1 ~85/9/6).
+    split_mode: str = "proportional"
+    train_frac: float = 0.80
+    valid_frac: float = 0.10        # test = 1 - train_frac - valid_frac
+    train_end: str = "2025-06-30"   # solo para split_mode="fixed"
+    valid_end: str = "2025-12-31"   # solo para split_mode="fixed"; test = posterior
 
     # Objetivo
     target: str = "monthly_rent_rub"
@@ -57,8 +80,12 @@ class Config:
     # Columnas prohibidas (fuga / identificadores / auditoría) — guard-rail
     forbidden: tuple = ("id", "dq_flags", "rent_per_sqm")
 
-    # metro_distance_min: condicional (VIF 5.56 vs to_center_km). Off por defecto.
-    include_metro_distance: bool = False
+    # metro_distance_min: ahora ON por defecto (señal incremental demostrada en log/spline)
+    include_metro_distance: bool = True
+    # Deriva temporal: "spline" (recomendado) | "linear" (control negativo) | None
+    time_mode: str | None = "spline"
+    # Spline sobre total_area
+    area_spline: bool = True
 
 
 # Columnas por rol (según EDA etapa 02, §7)
@@ -68,6 +95,9 @@ NUMERIC_COLS = [
 ]
 ENGINEERED_NUMERIC = ["building_age", "floor_ratio", "area_per_room"]
 SPLINE_COLS = ["to_center_km"]                     # decaimiento no lineal del precio
+TIME_ORIGIN = pd.Timestamp("2021-01-01")           # inicio del dataset (índice temporal)
+TIME_COL = "t_years"
+TIME_SPLINE_KNOTS, TIME_SPLINE_DEGREE = 8, 2       # elegido sobre valid (ver ablation_report)
 ONEHOT_COLS = ["building_type", "renovation"]      # 6 y 4 categorías
 TARGET_ENC_COLS = ["district"]                     # 129 categorías
 BOOL_AS_INT = ["furnished", "pets_allowed"]
@@ -122,7 +152,8 @@ def load_data(cfg: Config, strict_hash: bool) -> pd.DataFrame:
         print(f"[AVISO] {msg} — se continúa (sin --strict-hash).")
     df = pd.read_csv(cfg.input_csv, parse_dates=["date_posted"])
     assert df["date_posted"].notna().all(), "date_posted con NaT tras el parseo"
-    assert not set(cfg.forbidden) & set(df.columns) or True  # existen, pero se dropean luego
+    missing = set(cfg.forbidden) - set(df.columns)
+    assert not missing, f"Columnas esperadas ausentes en la entrada: {missing}"
     return df
 
 
@@ -142,36 +173,77 @@ def add_engineered_features(df: pd.DataFrame) -> pd.DataFrame:
     out["floor_ratio"] = out["floor"] / out["total_floors"]
     out["area_per_room"] = out["total_area"] / out["rooms"]
 
+    # Índice temporal continuo (años desde el inicio del dataset)
+    out[TIME_COL] = (out["date_posted"] - TIME_ORIGIN).dt.days / 365.25
+
+    # Metro: escala log y diferencia log respecto a to_center_km (aporta señal incremental
+    # aunque en bruto correlacionen 0.90; en log la correlación baja a ~0.62)
+    out["log_metro"] = np.log1p(out["metro_distance_min"])
+    out["log_metro_minus_log_center"] = out["log_metro"] - np.log1p(out["to_center_km"])
+
     for c in BOOL_AS_INT:
         out[c] = out[c].astype(np.int8)
     return out
 
 
+def resolve_cutoffs(df: pd.DataFrame, cfg: Config) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """Devuelve (train_end, valid_end): train = date<=train_end, valid = (train_end, valid_end],
+    test = date>valid_end. Con 'proportional' los cortes caen en el último día completo que
+    deja >= la fracción pedida de filas en cada bloque, sin partir un mismo día."""
+    if cfg.split_mode == "fixed":
+        return pd.Timestamp(cfg.train_end), pd.Timestamp(cfg.valid_end)
+    assert cfg.split_mode == "proportional", f"split_mode desconocido: {cfg.split_mode}"
+    assert 0 < cfg.train_frac and 0 < cfg.valid_frac and cfg.train_frac + cfg.valid_frac < 1, \
+        "Fracciones inválidas: train_frac + valid_frac debe ser < 1"
+    dates = df["date_posted"].sort_values().reset_index(drop=True)
+    n = len(dates)
+    train_end = dates.iloc[int(round(n * cfg.train_frac)) - 1]
+    valid_end = dates.iloc[int(round(n * (cfg.train_frac + cfg.valid_frac))) - 1]
+    return train_end, valid_end
+
+
 def temporal_split(df: pd.DataFrame, cfg: Config) -> dict[str, pd.DataFrame]:
-    train = df[df["date_posted"] <= cfg.train_end]
-    valid = df[(df["date_posted"] > cfg.train_end) & (df["date_posted"] <= cfg.valid_end)]
-    test = df[df["date_posted"] > cfg.valid_end]
+    train_end, valid_end = resolve_cutoffs(df, cfg)
+    train = df[df["date_posted"] <= train_end]
+    valid = df[(df["date_posted"] > train_end) & (df["date_posted"] <= valid_end)]
+    test = df[df["date_posted"] > valid_end]
     for name, part in (("train", train), ("valid", valid), ("test", test)):
         assert len(part) > 0, f"Split {name} vacío — revisa los cortes temporales"
+    # Garantía anti-fuga temporal: ningún split puede solaparse con el siguiente
+    assert train["date_posted"].max() < valid["date_posted"].min()
+    assert valid["date_posted"].max() < test["date_posted"].min()
     return {"train": train, "valid": valid, "test": test}
 
 
 # --------------------------------------------------------------------------- #
 # 3. Preprocesador (fit SOLO sobre train)                                     #
 # --------------------------------------------------------------------------- #
-def build_feature_lists(include_metro_distance: bool) -> dict[str, list]:
+def build_feature_lists(include_metro_distance: bool = True, time_mode: str | None = "spline",
+                       area_spline: bool = True) -> dict[str, list]:
     numeric = NUMERIC_COLS + ENGINEERED_NUMERIC + BOOL_AS_INT
+    spline = list(SPLINE_COLS)
+    if area_spline:
+        spline.append("total_area")
     if include_metro_distance:
-        numeric.append("metro_distance_min")
+        numeric += ["log_metro", "log_metro_minus_log_center"]
+        spline += ["metro_distance_min", "log_metro"]
+    if time_mode == "linear":
+        numeric.append(TIME_COL)
     return {
         "numeric": numeric,
-        "spline": SPLINE_COLS,
+        "spline": spline,
         "onehot": ONEHOT_COLS,
         "target_enc": TARGET_ENC_COLS,
+        "time_spline": [TIME_COL] if time_mode == "spline" else [],
     }
 
 
 def build_preprocessor(features: dict[str, list]) -> ColumnTransformer:
+    # Nota numérica (v2): las bases de splines y las dummies entran estandarizadas y el
+    # one-hot usa drop="first". Sin esto la matriz de diseño queda casi singular
+    # (cond ~ 1e17: las dummies suman 1 = intercepto y las bases B-spline suman ~1) y
+    # HuberRegressor (L-BFGS) converge ~5x más lento o se detiene sin converger.
+    # No cambia las predicciones de OLS; en Ridge/Lasso/Huber solo reescala la penalización.
     numeric_pipe = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="median")),   # mediana calculada en train
         ("scaler", RobustScaler()),                      # robusto a los extremos conservados
@@ -179,24 +251,38 @@ def build_preprocessor(features: dict[str, list]) -> ColumnTransformer:
     spline_pipe = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="median")),
         ("spline", SplineTransformer(n_knots=6, degree=3, include_bias=False)),
+        ("scaler", StandardScaler()),
     ])
     onehot_pipe = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="most_frequent")),
-        ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+        ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False, drop="first")),
+        ("scaler", StandardScaler()),
     ])
     target_enc_pipe = Pipeline(steps=[
         ("imputer", SimpleImputer(strategy="most_frequent")),
         # cv interno: evita que cada fila codifique con su propio target
         ("target_enc", TargetEncoder(cv=5, smooth="auto", random_state=RANDOM_STATE)),
+        ("scaler", StandardScaler()),
     ])
 
+    transformers = [
+        ("numeric", numeric_pipe, features["numeric"]),
+        ("spline", spline_pipe, features["spline"]),
+        ("onehot", onehot_pipe, features["onehot"]),
+        ("target_enc", target_enc_pipe, features["target_enc"]),
+    ]
+    if features.get("time_spline"):
+        # extrapolation="constant": fuera del rango de train se mantiene el último nivel
+        # observado (la tendencia se aplana desde ~2024; una recta sobreestimaría).
+        time_pipe = Pipeline(steps=[
+            ("spline", SplineTransformer(n_knots=TIME_SPLINE_KNOTS, degree=TIME_SPLINE_DEGREE,
+                                         include_bias=False, extrapolation="constant")),
+            ("scaler", StandardScaler()),
+        ])
+        transformers.append(("time", time_pipe, features["time_spline"]))
+
     return ColumnTransformer(
-        transformers=[
-            ("numeric", numeric_pipe, features["numeric"]),
-            ("spline", spline_pipe, features["spline"]),
-            ("onehot", onehot_pipe, features["onehot"]),
-            ("target_enc", target_enc_pipe, features["target_enc"]),
-        ],
+        transformers=transformers,
         remainder="drop",   # guard-rail: nada entra al modelo sin pasar por aquí
         verbose_feature_names_out=True,
     )
@@ -209,11 +295,24 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Etapa 03 — Preprocesamiento")
     parser.add_argument("--strict-hash", action="store_true",
                         help="Abortar si el SHA-256 de entrada no coincide")
-    parser.add_argument("--include-metro-distance", action="store_true",
-                        help="Incluir metro_distance_min (por defecto se excluye)")
+    parser.add_argument("--exclude-metro-distance", action="store_true",
+                        help="Excluir metro_distance_min (por defecto se incluye)")
+    parser.add_argument("--baseline", action="store_true",
+                        help="Reproduce el preprocesamiento v1 (sin tiempo, sin spline de área, sin metro)")
+    parser.add_argument("--train-frac", type=float, default=0.80,
+                        help="Fracción de filas para train (split cronológico). Default 0.80")
+    parser.add_argument("--valid-frac", type=float, default=0.10,
+                        help="Fracción de filas para valid; test = resto. Default 0.10")
+    parser.add_argument("--fixed-dates", action="store_true",
+                        help="Usar los cortes por fecha de la v1 (2025-06-30 / 2025-12-31, ~85/9/6)")
     args = parser.parse_args()
 
-    cfg = Config(include_metro_distance=args.include_metro_distance)
+    split_kw = dict(split_mode="fixed") if args.fixed_dates else dict(
+        split_mode="proportional", train_frac=args.train_frac, valid_frac=args.valid_frac)
+    if args.baseline:
+        cfg = Config(include_metro_distance=False, time_mode=None, area_spline=False, **split_kw)
+    else:
+        cfg = Config(include_metro_distance=not args.exclude_metro_distance, **split_kw)
     cfg.artifact_dir.mkdir(parents=True, exist_ok=True)
     cfg.report_dir.mkdir(parents=True, exist_ok=True)
 
@@ -225,7 +324,7 @@ def main() -> None:
     df = add_engineered_features(df)
 
     # Guard-rail de fugas: ninguna columna prohibida puede entrar a X
-    feature_lists = build_feature_lists(cfg.include_metro_distance)
+    feature_lists = build_feature_lists(cfg.include_metro_distance, cfg.time_mode, cfg.area_spline)
     used = set(sum(feature_lists.values(), []))
     leaks = used & set(cfg.forbidden)
     assert not leaks, f"¡FUGA DETECTADA! Columnas prohibidas en features: {leaks}"
@@ -248,9 +347,10 @@ def main() -> None:
     # --- Ajuste del preprocesador SOLO con train ---------------------------
     preprocessor = build_preprocessor(feature_lists)
     # El TargetEncoder se ajusta con el target en escala log (objetivo del modelo)
-    preprocessor.fit(X["train"], y_log["train"])
-
-    Xt = {name: preprocessor.transform(X[name]) for name in splits}
+    # fit_transform en train aplica el cross-fitting interno del TargetEncoder; llamar a
+    # .transform(train) después usaría codificaciones ajustadas con su propio target.
+    Xt = {"train": preprocessor.fit_transform(X["train"], y_log["train"])}
+    Xt.update({name: preprocessor.transform(X[name]) for name in ("valid", "test")})
     for name, arr in Xt.items():
         assert np.isfinite(arr if isinstance(arr, np.ndarray) else arr.toarray()).all(), \
             f"NaN/Inf en la matriz transformada de {name}"
@@ -275,12 +375,20 @@ def main() -> None:
             "fuga_o_auditoria": list(cfg.forbidden),
             "semantica_inconsistente": ["metro_station", "metro_line"],
             "redundantes": ["okrug (V=0.997 con district)", "building_year (se deriva building_age)"],
-            "condicional": ["metro_distance_min (VIF 5.56) — include_metro_distance="
-                            + str(cfg.include_metro_distance)],
+            "incluida_con_tratamiento_log_spline": ["metro_distance_min — include_metro_distance="
+                                                    + str(cfg.include_metro_distance)],
+        },
+        "split_cutoffs": {
+            "split_mode": cfg.split_mode,
+            "split_train_end": str(resolve_cutoffs(df, cfg)[0].date()),
+            "split_valid_start": str((resolve_cutoffs(df, cfg)[0] + pd.Timedelta(days=1)).date()),
+            "split_valid_end": str(resolve_cutoffs(df, cfg)[1].date()),
+            "split_test_start": str((resolve_cutoffs(df, cfg)[1] + pd.Timedelta(days=1)).date()),
         },
         "splits": {
             name: {
                 "n": int(len(part)),
+                "pct": round(100 * len(part) / len(df), 2),
                 "date_min": str(part["date_posted"].min().date()),
                 "date_max": str(part["date_posted"].max().date()),
                 "y_median": float(part[cfg.target].median()),
