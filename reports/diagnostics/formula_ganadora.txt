@@ -1,5 +1,5 @@
 ==============================================================================
-FÓRMULA DEL MODELO GANADOR: HuberRegressor
+FÓRMULA DEL MODELO GANADOR: LinearRegression
 ==============================================================================
 (One-hot con drop='first': la categoría base —la omitida de cada variable— queda en el intercepto.)
 ŷ_log = log1p(renta_estimada) = b0 + Σ ( coeficiente_i × x_i )
@@ -7,140 +7,140 @@ donde x_i son las columnas YA TRANSFORMADAS por el preprocesador de la etapa 03
 (imputación + escalado + splines + one-hot + target encoding).
 
 ECUACIÓN LINEAL COMPLETA (una línea):
-log1p(monthly_rent_rub) = +10.740175 + 0.001713·[numeric__rooms] - 0.000902·[numeric__total_floors] - 0.000447·[numeric__deposit_months] + 0.001908·[numeric__lat] - 0.016152·[numeric__lon] + 0.006222·[numeric__building_age] - 0.000122·[numeric__floor_ratio] + 0.076426·[numeric__furnished] - 0.026318·[numeric__pets_allowed] - 0.015994·[spline__to_center_km__pca0] + 0.010831·[spline__to_center_km__pca1] + 0.027395·[spline__to_center_km__pca2] + 0.021773·[spline__to_center_km__pca3] + 0.023067·[spline__to_center_km__pca4] + 0.001823·[spline__to_center_km__pca5] - 0.010518·[spline__to_center_km__pca6] - 0.001492·[spline__to_center_km__pca7] - 0.000440·[spline__to_center_km__pca8] - 0.181506·[spline__total_area__pca0] - 0.015119·[spline__total_area__pca1] - 0.104017·[spline__total_area__pca2] + 0.002736·[spline__total_area__pca3] - 0.068376·[spline__total_area__pca4] + 0.012535·[spline__total_area__pca5] - 0.034801·[spline__total_area__pca6] - 0.003281·[spline__total_area__pca7] - 0.001697·[spline__total_area__pca8] - 0.041288·[spline__metro_distance_min__pca0] + 0.037469·[spline__metro_distance_min__pca1] + 0.047709·[spline__metro_distance_min__pca2] - 0.028250·[spline__metro_distance_min__pca3] + 0.021458·[spline__metro_distance_min__pca4] - 0.003339·[spline__metro_distance_min__pca5] - 0.007132·[spline__metro_distance_min__pca6] + 0.002825·[spline__metro_distance_min__pca7] - 0.003612·[spline__metro_distance_min__pca8] - 0.001437·[spline__metro_distance_min__pca9] + 0.001051·[spline__metro_distance_min__pca10] + 0.001002·[spline__metro_distance_min__pca11] + 0.002001·[spline__metro_distance_min__pca12] - 0.076374·[onehot__building_type_khrushchev] - 0.016291·[onehot__building_type_modern_panel] + 0.022446·[onehot__building_type_monolith] - 0.055206·[onehot__building_type_panel] + 0.027332·[onehot__building_type_stalin] + 0.093680·[onehot__renovation_designer] + 0.068954·[onehot__renovation_euro] - 0.030857·[onehot__renovation_no_renovation] + 0.376061·[target_enc__district] - 0.071531·[time__pca0] + 0.009487·[time__pca1] - 0.022751·[time__pca2] + 0.014118·[time__pca3] + 0.018627·[time__pca4] + 0.009808·[time__pca5] - 0.009431·[time__pca6] - 0.004169·[time__pca7]
+log1p(monthly_rent_rub) = +10.744228 + 0.001867·[numeric__rooms] - 0.000032·[numeric__total_floors] - 0.000204·[numeric__deposit_months] + 0.036696·[numeric__lat] - 0.013029·[numeric__lon] + 0.005183·[numeric__building_age] + 0.000513·[numeric__floor_ratio] + 0.078361·[numeric__furnished] - 0.026570·[numeric__pets_allowed] - 0.055675·[spline__to_center_km__pca0] + 0.067334·[spline__to_center_km__pca1] + 0.073562·[spline__to_center_km__pca2] + 0.127022·[spline__to_center_km__pca3] + 0.096966·[spline__to_center_km__pca4] - 0.016009·[spline__to_center_km__pca5] - 0.052337·[spline__to_center_km__pca6] + 0.002365·[spline__to_center_km__pca7] - 0.006053·[spline__to_center_km__pca8] - 0.182560·[spline__total_area__pca0] - 0.014909·[spline__total_area__pca1] - 0.105636·[spline__total_area__pca2] + 0.002433·[spline__total_area__pca3] - 0.068328·[spline__total_area__pca4] + 0.013286·[spline__total_area__pca5] - 0.035054·[spline__total_area__pca6] - 0.003140·[spline__total_area__pca7] - 0.001508·[spline__total_area__pca8] - 0.066107·[spline__metro_distance_min__pca0] + 0.044827·[spline__metro_distance_min__pca1] + 0.067688·[spline__metro_distance_min__pca2] - 0.042217·[spline__metro_distance_min__pca3] + 0.040245·[spline__metro_distance_min__pca4] - 0.009542·[spline__metro_distance_min__pca5] - 0.023847·[spline__metro_distance_min__pca6] - 0.007722·[spline__metro_distance_min__pca7] + 0.014169·[spline__metro_distance_min__pca8] + 0.009172·[spline__metro_distance_min__pca9] - 0.002279·[spline__metro_distance_min__pca10] + 0.003630·[spline__metro_distance_min__pca11] + 0.001122·[spline__metro_distance_min__pca12] - 0.076725·[onehot__building_type_khrushchev] - 0.017009·[onehot__building_type_modern_panel] + 0.021849·[onehot__building_type_monolith] - 0.055408·[onehot__building_type_panel] + 0.027623·[onehot__building_type_stalin] + 0.094491·[onehot__renovation_designer] + 0.069709·[onehot__renovation_euro] - 0.031978·[onehot__renovation_no_renovation] + 0.258034·[target_enc__district] - 0.071850·[time__pca0] + 0.009881·[time__pca1] - 0.023446·[time__pca2] + 0.013893·[time__pca3] + 0.019175·[time__pca4] + 0.010570·[time__pca5] - 0.009434·[time__pca6] - 0.003555·[time__pca7]
 
 ECUACIÓN LINEAL DESGLOSADA:
 log1p(monthly_rent_rub) =
-    +10.740175
-  + 0.001713·[numeric__rooms]
-  - 0.000902·[numeric__total_floors]
-  - 0.000447·[numeric__deposit_months]
-  + 0.001908·[numeric__lat]
-  - 0.016152·[numeric__lon]
-  + 0.006222·[numeric__building_age]
-  - 0.000122·[numeric__floor_ratio]
-  + 0.076426·[numeric__furnished]
-  - 0.026318·[numeric__pets_allowed]
-  - 0.015994·[spline__to_center_km__pca0]
-  + 0.010831·[spline__to_center_km__pca1]
-  + 0.027395·[spline__to_center_km__pca2]
-  + 0.021773·[spline__to_center_km__pca3]
-  + 0.023067·[spline__to_center_km__pca4]
-  + 0.001823·[spline__to_center_km__pca5]
-  - 0.010518·[spline__to_center_km__pca6]
-  - 0.001492·[spline__to_center_km__pca7]
-  - 0.000440·[spline__to_center_km__pca8]
-  - 0.181506·[spline__total_area__pca0]
-  - 0.015119·[spline__total_area__pca1]
-  - 0.104017·[spline__total_area__pca2]
-  + 0.002736·[spline__total_area__pca3]
-  - 0.068376·[spline__total_area__pca4]
-  + 0.012535·[spline__total_area__pca5]
-  - 0.034801·[spline__total_area__pca6]
-  - 0.003281·[spline__total_area__pca7]
-  - 0.001697·[spline__total_area__pca8]
-  - 0.041288·[spline__metro_distance_min__pca0]
-  + 0.037469·[spline__metro_distance_min__pca1]
-  + 0.047709·[spline__metro_distance_min__pca2]
-  - 0.028250·[spline__metro_distance_min__pca3]
-  + 0.021458·[spline__metro_distance_min__pca4]
-  - 0.003339·[spline__metro_distance_min__pca5]
-  - 0.007132·[spline__metro_distance_min__pca6]
-  + 0.002825·[spline__metro_distance_min__pca7]
-  - 0.003612·[spline__metro_distance_min__pca8]
-  - 0.001437·[spline__metro_distance_min__pca9]
-  + 0.001051·[spline__metro_distance_min__pca10]
-  + 0.001002·[spline__metro_distance_min__pca11]
-  + 0.002001·[spline__metro_distance_min__pca12]
-  - 0.076374·[onehot__building_type_khrushchev]
-  - 0.016291·[onehot__building_type_modern_panel]
-  + 0.022446·[onehot__building_type_monolith]
-  - 0.055206·[onehot__building_type_panel]
-  + 0.027332·[onehot__building_type_stalin]
-  + 0.093680·[onehot__renovation_designer]
-  + 0.068954·[onehot__renovation_euro]
-  - 0.030857·[onehot__renovation_no_renovation]
-  + 0.376061·[target_enc__district]
-  - 0.071531·[time__pca0]
-  + 0.009487·[time__pca1]
-  - 0.022751·[time__pca2]
-  + 0.014118·[time__pca3]
-  + 0.018627·[time__pca4]
-  + 0.009808·[time__pca5]
-  - 0.009431·[time__pca6]
-  - 0.004169·[time__pca7]
+    +10.744228
+  + 0.001867·[numeric__rooms]
+  - 0.000032·[numeric__total_floors]
+  - 0.000204·[numeric__deposit_months]
+  + 0.036696·[numeric__lat]
+  - 0.013029·[numeric__lon]
+  + 0.005183·[numeric__building_age]
+  + 0.000513·[numeric__floor_ratio]
+  + 0.078361·[numeric__furnished]
+  - 0.026570·[numeric__pets_allowed]
+  - 0.055675·[spline__to_center_km__pca0]
+  + 0.067334·[spline__to_center_km__pca1]
+  + 0.073562·[spline__to_center_km__pca2]
+  + 0.127022·[spline__to_center_km__pca3]
+  + 0.096966·[spline__to_center_km__pca4]
+  - 0.016009·[spline__to_center_km__pca5]
+  - 0.052337·[spline__to_center_km__pca6]
+  + 0.002365·[spline__to_center_km__pca7]
+  - 0.006053·[spline__to_center_km__pca8]
+  - 0.182560·[spline__total_area__pca0]
+  - 0.014909·[spline__total_area__pca1]
+  - 0.105636·[spline__total_area__pca2]
+  + 0.002433·[spline__total_area__pca3]
+  - 0.068328·[spline__total_area__pca4]
+  + 0.013286·[spline__total_area__pca5]
+  - 0.035054·[spline__total_area__pca6]
+  - 0.003140·[spline__total_area__pca7]
+  - 0.001508·[spline__total_area__pca8]
+  - 0.066107·[spline__metro_distance_min__pca0]
+  + 0.044827·[spline__metro_distance_min__pca1]
+  + 0.067688·[spline__metro_distance_min__pca2]
+  - 0.042217·[spline__metro_distance_min__pca3]
+  + 0.040245·[spline__metro_distance_min__pca4]
+  - 0.009542·[spline__metro_distance_min__pca5]
+  - 0.023847·[spline__metro_distance_min__pca6]
+  - 0.007722·[spline__metro_distance_min__pca7]
+  + 0.014169·[spline__metro_distance_min__pca8]
+  + 0.009172·[spline__metro_distance_min__pca9]
+  - 0.002279·[spline__metro_distance_min__pca10]
+  + 0.003630·[spline__metro_distance_min__pca11]
+  + 0.001122·[spline__metro_distance_min__pca12]
+  - 0.076725·[onehot__building_type_khrushchev]
+  - 0.017009·[onehot__building_type_modern_panel]
+  + 0.021849·[onehot__building_type_monolith]
+  - 0.055408·[onehot__building_type_panel]
+  + 0.027623·[onehot__building_type_stalin]
+  + 0.094491·[onehot__renovation_designer]
+  + 0.069709·[onehot__renovation_euro]
+  - 0.031978·[onehot__renovation_no_renovation]
+  + 0.258034·[target_enc__district]
+  - 0.071850·[time__pca0]
+  + 0.009881·[time__pca1]
+  - 0.023446·[time__pca2]
+  + 0.013893·[time__pca3]
+  + 0.019175·[time__pca4]
+  + 0.010570·[time__pca5]
+  - 0.009434·[time__pca6]
+  - 0.003555·[time__pca7]
 
-  b0 (intercepto) = +10.740175
+  b0 (intercepto) = +10.744228
 
   --- bloque «numeric» (9 términos) ---
-     +0.001713 × numeric__rooms
-     -0.000902 × numeric__total_floors
-     -0.000447 × numeric__deposit_months
-     +0.001908 × numeric__lat
-     -0.016152 × numeric__lon
-     +0.006222 × numeric__building_age
-     -0.000122 × numeric__floor_ratio
-     +0.076426 × numeric__furnished
-     -0.026318 × numeric__pets_allowed
+     +0.001867 × numeric__rooms
+     -0.000032 × numeric__total_floors
+     -0.000204 × numeric__deposit_months
+     +0.036696 × numeric__lat
+     -0.013029 × numeric__lon
+     +0.005183 × numeric__building_age
+     +0.000513 × numeric__floor_ratio
+     +0.078361 × numeric__furnished
+     -0.026570 × numeric__pets_allowed
 
   --- bloque «spline» (31 términos) ---
-     -0.015994 × spline__to_center_km__pca0
-     +0.010831 × spline__to_center_km__pca1
-     +0.027395 × spline__to_center_km__pca2
-     +0.021773 × spline__to_center_km__pca3
-     +0.023067 × spline__to_center_km__pca4
-     +0.001823 × spline__to_center_km__pca5
-     -0.010518 × spline__to_center_km__pca6
-     -0.001492 × spline__to_center_km__pca7
-     -0.000440 × spline__to_center_km__pca8
-     -0.181506 × spline__total_area__pca0
-     -0.015119 × spline__total_area__pca1
-     -0.104017 × spline__total_area__pca2
-     +0.002736 × spline__total_area__pca3
-     -0.068376 × spline__total_area__pca4
-     +0.012535 × spline__total_area__pca5
-     -0.034801 × spline__total_area__pca6
-     -0.003281 × spline__total_area__pca7
-     -0.001697 × spline__total_area__pca8
-     -0.041288 × spline__metro_distance_min__pca0
-     +0.037469 × spline__metro_distance_min__pca1
-     +0.047709 × spline__metro_distance_min__pca2
-     -0.028250 × spline__metro_distance_min__pca3
-     +0.021458 × spline__metro_distance_min__pca4
-     -0.003339 × spline__metro_distance_min__pca5
-     -0.007132 × spline__metro_distance_min__pca6
-     +0.002825 × spline__metro_distance_min__pca7
-     -0.003612 × spline__metro_distance_min__pca8
-     -0.001437 × spline__metro_distance_min__pca9
-     +0.001051 × spline__metro_distance_min__pca10
-     +0.001002 × spline__metro_distance_min__pca11
-     +0.002001 × spline__metro_distance_min__pca12
+     -0.055675 × spline__to_center_km__pca0
+     +0.067334 × spline__to_center_km__pca1
+     +0.073562 × spline__to_center_km__pca2
+     +0.127022 × spline__to_center_km__pca3
+     +0.096966 × spline__to_center_km__pca4
+     -0.016009 × spline__to_center_km__pca5
+     -0.052337 × spline__to_center_km__pca6
+     +0.002365 × spline__to_center_km__pca7
+     -0.006053 × spline__to_center_km__pca8
+     -0.182560 × spline__total_area__pca0
+     -0.014909 × spline__total_area__pca1
+     -0.105636 × spline__total_area__pca2
+     +0.002433 × spline__total_area__pca3
+     -0.068328 × spline__total_area__pca4
+     +0.013286 × spline__total_area__pca5
+     -0.035054 × spline__total_area__pca6
+     -0.003140 × spline__total_area__pca7
+     -0.001508 × spline__total_area__pca8
+     -0.066107 × spline__metro_distance_min__pca0
+     +0.044827 × spline__metro_distance_min__pca1
+     +0.067688 × spline__metro_distance_min__pca2
+     -0.042217 × spline__metro_distance_min__pca3
+     +0.040245 × spline__metro_distance_min__pca4
+     -0.009542 × spline__metro_distance_min__pca5
+     -0.023847 × spline__metro_distance_min__pca6
+     -0.007722 × spline__metro_distance_min__pca7
+     +0.014169 × spline__metro_distance_min__pca8
+     +0.009172 × spline__metro_distance_min__pca9
+     -0.002279 × spline__metro_distance_min__pca10
+     +0.003630 × spline__metro_distance_min__pca11
+     +0.001122 × spline__metro_distance_min__pca12
 
   --- bloque «onehot» (8 términos) ---
-     -0.076374 × onehot__building_type_khrushchev
-     -0.016291 × onehot__building_type_modern_panel
-     +0.022446 × onehot__building_type_monolith
-     -0.055206 × onehot__building_type_panel
-     +0.027332 × onehot__building_type_stalin
-     +0.093680 × onehot__renovation_designer
-     +0.068954 × onehot__renovation_euro
-     -0.030857 × onehot__renovation_no_renovation
+     -0.076725 × onehot__building_type_khrushchev
+     -0.017009 × onehot__building_type_modern_panel
+     +0.021849 × onehot__building_type_monolith
+     -0.055408 × onehot__building_type_panel
+     +0.027623 × onehot__building_type_stalin
+     +0.094491 × onehot__renovation_designer
+     +0.069709 × onehot__renovation_euro
+     -0.031978 × onehot__renovation_no_renovation
 
   --- bloque «target_enc» (1 términos) ---
-     +0.376061 × target_enc__district
+     +0.258034 × target_enc__district
 
   --- bloque «time» (8 términos) ---
-     -0.071531 × time__pca0
-     +0.009487 × time__pca1
-     -0.022751 × time__pca2
-     +0.014118 × time__pca3
-     +0.018627 × time__pca4
-     +0.009808 × time__pca5
-     -0.009431 × time__pca6
-     -0.004169 × time__pca7
+     -0.071850 × time__pca0
+     +0.009881 × time__pca1
+     -0.023446 × time__pca2
+     +0.013893 × time__pca3
+     +0.019175 × time__pca4
+     +0.010570 × time__pca5
+     -0.009434 × time__pca6
+     -0.003555 × time__pca7
 
 Retransformación a RUB (corrección de Duan):
-  renta_RUB = exp(ŷ_log) × S − 1,   con S = 1.002622
+  renta_RUB = exp(ŷ_log) × S − 1,   con S = 1.003500
 
 Lectura de efectos (solo bloques numeric/onehot; ver coeficientes.csv):
   efecto_pct_por_unidad = (exp(coef/escala) − 1) × 100  → % de cambio de la renta por unidad
@@ -155,67 +155,67 @@ FACTOR DE INFLACIÓN DE LA VARIANZA (VIF) — TODAS LAS VARIABLES (Train)
 Regla práctica: VIF < 5 (baja colinealidad) | 5 ≤ VIF < 10 (moderada) | VIF ≥ 10 (alta).
 Término                                    | Bloque     |          VIF |   R² aux | Estado
 --------------------------------------------------------------------------------------------
-spline__to_center_km__pca3                 | spline     |         9.36 |   0.8931 | MODERADO (5-10)
-target_enc__district                       | target_enc |         7.58 |   0.8681 | MODERADO (5-10)
-spline__to_center_km__pca4                 | spline     |         6.89 |   0.8548 | MODERADO (5-10)
-spline__metro_distance_min__pca6           | spline     |         5.49 |   0.8179 | MODERADO (5-10)
-spline__to_center_km__pca2                 | spline     |         5.26 |   0.8100 | MODERADO (5-10)
+spline__to_center_km__pca3                 | spline     |         8.01 |   0.8752 | MODERADO (5-10)
+spline__to_center_km__pca4                 | spline     |         5.56 |   0.8201 | MODERADO (5-10)
+spline__metro_distance_min__pca6           | spline     |         5.48 |   0.8174 | MODERADO (5-10)
 numeric__rooms                             | numeric    |         5.24 |   0.8092 | MODERADO (5-10)
-spline__to_center_km__pca6                 | spline     |         4.90 |   0.7960 | OK (<5)
 spline__metro_distance_min__pca5           | spline     |         4.67 |   0.7857 | OK (<5)
+spline__to_center_km__pca6                 | spline     |         4.61 |   0.7830 | OK (<5)
 numeric__building_age                      | numeric    |         4.27 |   0.7657 | OK (<5)
-spline__to_center_km__pca0                 | spline     |         3.99 |   0.7491 | OK (<5)
-spline__to_center_km__pca1                 | spline     |         3.97 |   0.7479 | OK (<5)
+spline__to_center_km__pca2                 | spline     |         4.18 |   0.7610 | OK (<5)
 spline__total_area__pca0                   | spline     |         3.74 |   0.7325 | OK (<5)
-spline__metro_distance_min__pca10          | spline     |         3.25 |   0.6922 | OK (<5)
-numeric__lon                               | numeric    |         3.20 |   0.6877 | OK (<5)
+spline__to_center_km__pca1                 | spline     |         3.52 |   0.7158 | OK (<5)
+spline__metro_distance_min__pca10          | spline     |         3.25 |   0.6923 | OK (<5)
+target_enc__district                       | target_enc |         3.19 |   0.6869 | OK (<5)
+spline__to_center_km__pca0                 | spline     |         3.18 |   0.6856 | OK (<5)
+numeric__lon                               | numeric    |         3.16 |   0.6838 | OK (<5)
 onehot__building_type_monolith             | onehot     |         2.91 |   0.6568 | OK (<5)
 onehot__building_type_modern_panel         | onehot     |         2.71 |   0.6304 | OK (<5)
-spline__metro_distance_min__pca4           | spline     |         2.67 |   0.6252 | OK (<5)
-spline__metro_distance_min__pca0           | spline     |         2.51 |   0.6023 | OK (<5)
-numeric__lat                               | numeric    |         2.44 |   0.5904 | OK (<5)
-spline__metro_distance_min__pca1           | spline     |         2.23 |   0.5518 | OK (<5)
-spline__metro_distance_min__pca2           | spline     |         1.87 |   0.4658 | OK (<5)
-spline__metro_distance_min__pca3           | spline     |         1.83 |   0.4545 | OK (<5)
-spline__to_center_km__pca5                 | spline     |         1.83 |   0.4533 | OK (<5)
+spline__metro_distance_min__pca4           | spline     |         2.65 |   0.6222 | OK (<5)
+numeric__lat                               | numeric    |         2.56 |   0.6090 | OK (<5)
+spline__metro_distance_min__pca0           | spline     |         2.42 |   0.5874 | OK (<5)
+spline__metro_distance_min__pca1           | spline     |         2.23 |   0.5509 | OK (<5)
+spline__to_center_km__pca5                 | spline     |         1.90 |   0.4741 | OK (<5)
+spline__metro_distance_min__pca2           | spline     |         1.84 |   0.4571 | OK (<5)
+spline__metro_distance_min__pca3           | spline     |         1.82 |   0.4516 | OK (<5)
 onehot__building_type_khrushchev           | onehot     |         1.81 |   0.4489 | OK (<5)
 onehot__building_type_panel                | onehot     |         1.77 |   0.4347 | OK (<5)
-spline__total_area__pca2                   | spline     |         1.69 |   0.4080 | OK (<5)
-onehot__building_type_stalin               | onehot     |         1.68 |   0.4044 | OK (<5)
-spline__metro_distance_min__pca7           | spline     |         1.67 |   0.4012 | OK (<5)
-spline__to_center_km__pca8                 | spline     |         1.47 |   0.3183 | OK (<5)
+spline__total_area__pca2                   | spline     |         1.69 |   0.4081 | OK (<5)
+onehot__building_type_stalin               | onehot     |         1.68 |   0.4043 | OK (<5)
+spline__metro_distance_min__pca7           | spline     |         1.67 |   0.3994 | OK (<5)
+spline__to_center_km__pca8                 | spline     |         1.48 |   0.3221 | OK (<5)
 spline__total_area__pca4                   | spline     |         1.30 |   0.2300 | OK (<5)
 spline__total_area__pca1                   | spline     |         1.24 |   0.1909 | OK (<5)
 spline__total_area__pca3                   | spline     |         1.23 |   0.1855 | OK (<5)
-spline__metro_distance_min__pca8           | spline     |         1.16 |   0.1348 | OK (<5)
 onehot__renovation_euro                    | onehot     |         1.16 |   0.1344 | OK (<5)
-spline__metro_distance_min__pca12          | spline     |         1.15 |   0.1329 | OK (<5)
+spline__metro_distance_min__pca12          | spline     |         1.15 |   0.1331 | OK (<5)
+spline__metro_distance_min__pca8           | spline     |         1.14 |   0.1210 | OK (<5)
 onehot__renovation_designer                | onehot     |         1.10 |   0.0927 | OK (<5)
 onehot__renovation_no_renovation           | onehot     |         1.10 |   0.0905 | OK (<5)
-spline__total_area__pca5                   | spline     |         1.04 |   0.0419 | OK (<5)
+spline__total_area__pca5                   | spline     |         1.04 |   0.0418 | OK (<5)
 spline__total_area__pca6                   | spline     |         1.02 |   0.0243 | OK (<5)
-spline__metro_distance_min__pca9           | spline     |         1.02 |   0.0220 | OK (<5)
-spline__to_center_km__pca7                 | spline     |         1.02 |   0.0150 | OK (<5)
+spline__to_center_km__pca7                 | spline     |         1.02 |   0.0177 | OK (<5)
+spline__metro_distance_min__pca9           | spline     |         1.01 |   0.0136 | OK (<5)
 numeric__total_floors                      | numeric    |         1.01 |   0.0088 | OK (<5)
 numeric__floor_ratio                       | numeric    |         1.01 |   0.0085 | OK (<5)
-spline__metro_distance_min__pca11          | spline     |         1.01 |   0.0077 | OK (<5)
+spline__metro_distance_min__pca11          | spline     |         1.01 |   0.0071 | OK (<5)
 time__pca5                                 | time       |         1.00 |   0.0037 | OK (<5)
 time__pca0                                 | time       |         1.00 |   0.0034 | OK (<5)
 time__pca7                                 | time       |         1.00 |   0.0032 | OK (<5)
 time__pca1                                 | time       |         1.00 |   0.0031 | OK (<5)
-time__pca4                                 | time       |         1.00 |   0.0028 | OK (<5)
 time__pca6                                 | time       |         1.00 |   0.0028 | OK (<5)
-numeric__furnished                         | numeric    |         1.00 |   0.0027 | OK (<5)
+numeric__furnished                         | numeric    |         1.00 |   0.0028 | OK (<5)
+time__pca4                                 | time       |         1.00 |   0.0027 | OK (<5)
 numeric__deposit_months                    | numeric    |         1.00 |   0.0026 | OK (<5)
-time__pca2                                 | time       |         1.00 |   0.0025 | OK (<5)
-time__pca3                                 | time       |         1.00 |   0.0025 | OK (<5)
+time__pca3                                 | time       |         1.00 |   0.0024 | OK (<5)
+time__pca2                                 | time       |         1.00 |   0.0024 | OK (<5)
 spline__total_area__pca8                   | spline     |         1.00 |   0.0024 | OK (<5)
 numeric__pets_allowed                      | numeric    |         1.00 |   0.0021 | OK (<5)
 spline__total_area__pca7                   | spline     |         1.00 |   0.0019 | OK (<5)
 
 
 ==============================================================================
-FÓRMULA COMPAÑERA INTERPRETABLE: Ridge(alpha=10.0)  —  RMSE_log valid 0.1015 | test 0.1023 (ganador: valid 0.1013 | test 0.1014)
+FÓRMULA COMPAÑERA INTERPRETABLE: Ridge(alpha=0.01)  —  RMSE_log valid 0.0856 | test 0.0879 (ganador: valid 0.0856 | test 0.0879)
 ==============================================================================
 (One-hot con drop='first': la categoría base —la omitida de cada variable— queda en el intercepto.)
 ŷ_log = log1p(renta_estimada) = b0 + Σ ( coeficiente_i × x_i )
@@ -223,140 +223,140 @@ donde x_i son las columnas YA TRANSFORMADAS por el preprocesador de la etapa 03
 (imputación + escalado + splines + one-hot + target encoding).
 
 ECUACIÓN LINEAL COMPLETA (una línea):
-log1p(monthly_rent_rub) = +10.738333 + 0.002903·[numeric__rooms] - 0.000782·[numeric__total_floors] - 0.000038·[numeric__deposit_months] + 0.002087·[numeric__lat] - 0.018405·[numeric__lon] + 0.006550·[numeric__building_age] - 0.000033·[numeric__floor_ratio] + 0.077037·[numeric__furnished] - 0.026942·[numeric__pets_allowed] - 0.019594·[spline__to_center_km__pca0] + 0.011697·[spline__to_center_km__pca1] + 0.030434·[spline__to_center_km__pca2] + 0.022880·[spline__to_center_km__pca3] + 0.026201·[spline__to_center_km__pca4] + 0.002122·[spline__to_center_km__pca5] - 0.012520·[spline__to_center_km__pca6] - 0.001713·[spline__to_center_km__pca7] - 0.000578·[spline__to_center_km__pca8] - 0.180493·[spline__total_area__pca0] - 0.014978·[spline__total_area__pca1] - 0.103794·[spline__total_area__pca2] + 0.002574·[spline__total_area__pca3] - 0.068040·[spline__total_area__pca4] + 0.012570·[spline__total_area__pca5] - 0.034857·[spline__total_area__pca6] - 0.003308·[spline__total_area__pca7] - 0.001744·[spline__total_area__pca8] - 0.042080·[spline__metro_distance_min__pca0] + 0.037742·[spline__metro_distance_min__pca1] + 0.048640·[spline__metro_distance_min__pca2] - 0.028693·[spline__metro_distance_min__pca3] + 0.022415·[spline__metro_distance_min__pca4] - 0.003835·[spline__metro_distance_min__pca5] - 0.008274·[spline__metro_distance_min__pca6] + 0.001920·[spline__metro_distance_min__pca7] - 0.003261·[spline__metro_distance_min__pca8] - 0.001395·[spline__metro_distance_min__pca9] + 0.001207·[spline__metro_distance_min__pca10] + 0.001331·[spline__metro_distance_min__pca11] + 0.001987·[spline__metro_distance_min__pca12] - 0.076313·[onehot__building_type_khrushchev] - 0.015994·[onehot__building_type_modern_panel] + 0.022255·[onehot__building_type_monolith] - 0.055051·[onehot__building_type_panel] + 0.027342·[onehot__building_type_stalin] + 0.093636·[onehot__renovation_designer] + 0.068623·[onehot__renovation_euro] - 0.031120·[onehot__renovation_no_renovation] + 0.369790·[target_enc__district] - 0.071579·[time__pca0] + 0.009822·[time__pca1] - 0.022898·[time__pca2] + 0.013974·[time__pca3] + 0.018354·[time__pca4] + 0.010050·[time__pca5] - 0.009050·[time__pca6] - 0.003726·[time__pca7]
+log1p(monthly_rent_rub) = +10.744228 + 0.001868·[numeric__rooms] - 0.000032·[numeric__total_floors] - 0.000204·[numeric__deposit_months] + 0.036696·[numeric__lat] - 0.013029·[numeric__lon] + 0.005183·[numeric__building_age] + 0.000513·[numeric__floor_ratio] + 0.078361·[numeric__furnished] - 0.026570·[numeric__pets_allowed] - 0.055675·[spline__to_center_km__pca0] + 0.067333·[spline__to_center_km__pca1] + 0.073561·[spline__to_center_km__pca2] + 0.127021·[spline__to_center_km__pca3] + 0.096965·[spline__to_center_km__pca4] - 0.016009·[spline__to_center_km__pca5] - 0.052336·[spline__to_center_km__pca6] + 0.002365·[spline__to_center_km__pca7] - 0.006053·[spline__to_center_km__pca8] - 0.182560·[spline__total_area__pca0] - 0.014909·[spline__total_area__pca1] - 0.105636·[spline__total_area__pca2] + 0.002433·[spline__total_area__pca3] - 0.068327·[spline__total_area__pca4] + 0.013286·[spline__total_area__pca5] - 0.035054·[spline__total_area__pca6] - 0.003140·[spline__total_area__pca7] - 0.001508·[spline__total_area__pca8] - 0.066107·[spline__metro_distance_min__pca0] + 0.044826·[spline__metro_distance_min__pca1] + 0.067688·[spline__metro_distance_min__pca2] - 0.042217·[spline__metro_distance_min__pca3] + 0.040246·[spline__metro_distance_min__pca4] - 0.009541·[spline__metro_distance_min__pca5] - 0.023848·[spline__metro_distance_min__pca6] - 0.007722·[spline__metro_distance_min__pca7] + 0.014170·[spline__metro_distance_min__pca8] + 0.009172·[spline__metro_distance_min__pca9] - 0.002279·[spline__metro_distance_min__pca10] + 0.003630·[spline__metro_distance_min__pca11] + 0.001122·[spline__metro_distance_min__pca12] - 0.076724·[onehot__building_type_khrushchev] - 0.017009·[onehot__building_type_modern_panel] + 0.021849·[onehot__building_type_monolith] - 0.055408·[onehot__building_type_panel] + 0.027623·[onehot__building_type_stalin] + 0.094491·[onehot__renovation_designer] + 0.069709·[onehot__renovation_euro] - 0.031978·[onehot__renovation_no_renovation] + 0.258034·[target_enc__district] - 0.071850·[time__pca0] + 0.009881·[time__pca1] - 0.023446·[time__pca2] + 0.013893·[time__pca3] + 0.019175·[time__pca4] + 0.010570·[time__pca5] - 0.009434·[time__pca6] - 0.003555·[time__pca7]
 
 ECUACIÓN LINEAL DESGLOSADA:
 log1p(monthly_rent_rub) =
-    +10.738333
-  + 0.002903·[numeric__rooms]
-  - 0.000782·[numeric__total_floors]
-  - 0.000038·[numeric__deposit_months]
-  + 0.002087·[numeric__lat]
-  - 0.018405·[numeric__lon]
-  + 0.006550·[numeric__building_age]
-  - 0.000033·[numeric__floor_ratio]
-  + 0.077037·[numeric__furnished]
-  - 0.026942·[numeric__pets_allowed]
-  - 0.019594·[spline__to_center_km__pca0]
-  + 0.011697·[spline__to_center_km__pca1]
-  + 0.030434·[spline__to_center_km__pca2]
-  + 0.022880·[spline__to_center_km__pca3]
-  + 0.026201·[spline__to_center_km__pca4]
-  + 0.002122·[spline__to_center_km__pca5]
-  - 0.012520·[spline__to_center_km__pca6]
-  - 0.001713·[spline__to_center_km__pca7]
-  - 0.000578·[spline__to_center_km__pca8]
-  - 0.180493·[spline__total_area__pca0]
-  - 0.014978·[spline__total_area__pca1]
-  - 0.103794·[spline__total_area__pca2]
-  + 0.002574·[spline__total_area__pca3]
-  - 0.068040·[spline__total_area__pca4]
-  + 0.012570·[spline__total_area__pca5]
-  - 0.034857·[spline__total_area__pca6]
-  - 0.003308·[spline__total_area__pca7]
-  - 0.001744·[spline__total_area__pca8]
-  - 0.042080·[spline__metro_distance_min__pca0]
-  + 0.037742·[spline__metro_distance_min__pca1]
-  + 0.048640·[spline__metro_distance_min__pca2]
-  - 0.028693·[spline__metro_distance_min__pca3]
-  + 0.022415·[spline__metro_distance_min__pca4]
-  - 0.003835·[spline__metro_distance_min__pca5]
-  - 0.008274·[spline__metro_distance_min__pca6]
-  + 0.001920·[spline__metro_distance_min__pca7]
-  - 0.003261·[spline__metro_distance_min__pca8]
-  - 0.001395·[spline__metro_distance_min__pca9]
-  + 0.001207·[spline__metro_distance_min__pca10]
-  + 0.001331·[spline__metro_distance_min__pca11]
-  + 0.001987·[spline__metro_distance_min__pca12]
-  - 0.076313·[onehot__building_type_khrushchev]
-  - 0.015994·[onehot__building_type_modern_panel]
-  + 0.022255·[onehot__building_type_monolith]
-  - 0.055051·[onehot__building_type_panel]
-  + 0.027342·[onehot__building_type_stalin]
-  + 0.093636·[onehot__renovation_designer]
-  + 0.068623·[onehot__renovation_euro]
-  - 0.031120·[onehot__renovation_no_renovation]
-  + 0.369790·[target_enc__district]
-  - 0.071579·[time__pca0]
-  + 0.009822·[time__pca1]
-  - 0.022898·[time__pca2]
-  + 0.013974·[time__pca3]
-  + 0.018354·[time__pca4]
-  + 0.010050·[time__pca5]
-  - 0.009050·[time__pca6]
-  - 0.003726·[time__pca7]
+    +10.744228
+  + 0.001868·[numeric__rooms]
+  - 0.000032·[numeric__total_floors]
+  - 0.000204·[numeric__deposit_months]
+  + 0.036696·[numeric__lat]
+  - 0.013029·[numeric__lon]
+  + 0.005183·[numeric__building_age]
+  + 0.000513·[numeric__floor_ratio]
+  + 0.078361·[numeric__furnished]
+  - 0.026570·[numeric__pets_allowed]
+  - 0.055675·[spline__to_center_km__pca0]
+  + 0.067333·[spline__to_center_km__pca1]
+  + 0.073561·[spline__to_center_km__pca2]
+  + 0.127021·[spline__to_center_km__pca3]
+  + 0.096965·[spline__to_center_km__pca4]
+  - 0.016009·[spline__to_center_km__pca5]
+  - 0.052336·[spline__to_center_km__pca6]
+  + 0.002365·[spline__to_center_km__pca7]
+  - 0.006053·[spline__to_center_km__pca8]
+  - 0.182560·[spline__total_area__pca0]
+  - 0.014909·[spline__total_area__pca1]
+  - 0.105636·[spline__total_area__pca2]
+  + 0.002433·[spline__total_area__pca3]
+  - 0.068327·[spline__total_area__pca4]
+  + 0.013286·[spline__total_area__pca5]
+  - 0.035054·[spline__total_area__pca6]
+  - 0.003140·[spline__total_area__pca7]
+  - 0.001508·[spline__total_area__pca8]
+  - 0.066107·[spline__metro_distance_min__pca0]
+  + 0.044826·[spline__metro_distance_min__pca1]
+  + 0.067688·[spline__metro_distance_min__pca2]
+  - 0.042217·[spline__metro_distance_min__pca3]
+  + 0.040246·[spline__metro_distance_min__pca4]
+  - 0.009541·[spline__metro_distance_min__pca5]
+  - 0.023848·[spline__metro_distance_min__pca6]
+  - 0.007722·[spline__metro_distance_min__pca7]
+  + 0.014170·[spline__metro_distance_min__pca8]
+  + 0.009172·[spline__metro_distance_min__pca9]
+  - 0.002279·[spline__metro_distance_min__pca10]
+  + 0.003630·[spline__metro_distance_min__pca11]
+  + 0.001122·[spline__metro_distance_min__pca12]
+  - 0.076724·[onehot__building_type_khrushchev]
+  - 0.017009·[onehot__building_type_modern_panel]
+  + 0.021849·[onehot__building_type_monolith]
+  - 0.055408·[onehot__building_type_panel]
+  + 0.027623·[onehot__building_type_stalin]
+  + 0.094491·[onehot__renovation_designer]
+  + 0.069709·[onehot__renovation_euro]
+  - 0.031978·[onehot__renovation_no_renovation]
+  + 0.258034·[target_enc__district]
+  - 0.071850·[time__pca0]
+  + 0.009881·[time__pca1]
+  - 0.023446·[time__pca2]
+  + 0.013893·[time__pca3]
+  + 0.019175·[time__pca4]
+  + 0.010570·[time__pca5]
+  - 0.009434·[time__pca6]
+  - 0.003555·[time__pca7]
 
-  b0 (intercepto) = +10.738333
+  b0 (intercepto) = +10.744228
 
   --- bloque «numeric» (9 términos) ---
-     +0.002903 × numeric__rooms
-     -0.000782 × numeric__total_floors
-     -0.000038 × numeric__deposit_months
-     +0.002087 × numeric__lat
-     -0.018405 × numeric__lon
-     +0.006550 × numeric__building_age
-     -0.000033 × numeric__floor_ratio
-     +0.077037 × numeric__furnished
-     -0.026942 × numeric__pets_allowed
+     +0.001868 × numeric__rooms
+     -0.000032 × numeric__total_floors
+     -0.000204 × numeric__deposit_months
+     +0.036696 × numeric__lat
+     -0.013029 × numeric__lon
+     +0.005183 × numeric__building_age
+     +0.000513 × numeric__floor_ratio
+     +0.078361 × numeric__furnished
+     -0.026570 × numeric__pets_allowed
 
   --- bloque «spline» (31 términos) ---
-     -0.019594 × spline__to_center_km__pca0
-     +0.011697 × spline__to_center_km__pca1
-     +0.030434 × spline__to_center_km__pca2
-     +0.022880 × spline__to_center_km__pca3
-     +0.026201 × spline__to_center_km__pca4
-     +0.002122 × spline__to_center_km__pca5
-     -0.012520 × spline__to_center_km__pca6
-     -0.001713 × spline__to_center_km__pca7
-     -0.000578 × spline__to_center_km__pca8
-     -0.180493 × spline__total_area__pca0
-     -0.014978 × spline__total_area__pca1
-     -0.103794 × spline__total_area__pca2
-     +0.002574 × spline__total_area__pca3
-     -0.068040 × spline__total_area__pca4
-     +0.012570 × spline__total_area__pca5
-     -0.034857 × spline__total_area__pca6
-     -0.003308 × spline__total_area__pca7
-     -0.001744 × spline__total_area__pca8
-     -0.042080 × spline__metro_distance_min__pca0
-     +0.037742 × spline__metro_distance_min__pca1
-     +0.048640 × spline__metro_distance_min__pca2
-     -0.028693 × spline__metro_distance_min__pca3
-     +0.022415 × spline__metro_distance_min__pca4
-     -0.003835 × spline__metro_distance_min__pca5
-     -0.008274 × spline__metro_distance_min__pca6
-     +0.001920 × spline__metro_distance_min__pca7
-     -0.003261 × spline__metro_distance_min__pca8
-     -0.001395 × spline__metro_distance_min__pca9
-     +0.001207 × spline__metro_distance_min__pca10
-     +0.001331 × spline__metro_distance_min__pca11
-     +0.001987 × spline__metro_distance_min__pca12
+     -0.055675 × spline__to_center_km__pca0
+     +0.067333 × spline__to_center_km__pca1
+     +0.073561 × spline__to_center_km__pca2
+     +0.127021 × spline__to_center_km__pca3
+     +0.096965 × spline__to_center_km__pca4
+     -0.016009 × spline__to_center_km__pca5
+     -0.052336 × spline__to_center_km__pca6
+     +0.002365 × spline__to_center_km__pca7
+     -0.006053 × spline__to_center_km__pca8
+     -0.182560 × spline__total_area__pca0
+     -0.014909 × spline__total_area__pca1
+     -0.105636 × spline__total_area__pca2
+     +0.002433 × spline__total_area__pca3
+     -0.068327 × spline__total_area__pca4
+     +0.013286 × spline__total_area__pca5
+     -0.035054 × spline__total_area__pca6
+     -0.003140 × spline__total_area__pca7
+     -0.001508 × spline__total_area__pca8
+     -0.066107 × spline__metro_distance_min__pca0
+     +0.044826 × spline__metro_distance_min__pca1
+     +0.067688 × spline__metro_distance_min__pca2
+     -0.042217 × spline__metro_distance_min__pca3
+     +0.040246 × spline__metro_distance_min__pca4
+     -0.009541 × spline__metro_distance_min__pca5
+     -0.023848 × spline__metro_distance_min__pca6
+     -0.007722 × spline__metro_distance_min__pca7
+     +0.014170 × spline__metro_distance_min__pca8
+     +0.009172 × spline__metro_distance_min__pca9
+     -0.002279 × spline__metro_distance_min__pca10
+     +0.003630 × spline__metro_distance_min__pca11
+     +0.001122 × spline__metro_distance_min__pca12
 
   --- bloque «onehot» (8 términos) ---
-     -0.076313 × onehot__building_type_khrushchev
-     -0.015994 × onehot__building_type_modern_panel
-     +0.022255 × onehot__building_type_monolith
-     -0.055051 × onehot__building_type_panel
-     +0.027342 × onehot__building_type_stalin
-     +0.093636 × onehot__renovation_designer
-     +0.068623 × onehot__renovation_euro
-     -0.031120 × onehot__renovation_no_renovation
+     -0.076724 × onehot__building_type_khrushchev
+     -0.017009 × onehot__building_type_modern_panel
+     +0.021849 × onehot__building_type_monolith
+     -0.055408 × onehot__building_type_panel
+     +0.027623 × onehot__building_type_stalin
+     +0.094491 × onehot__renovation_designer
+     +0.069709 × onehot__renovation_euro
+     -0.031978 × onehot__renovation_no_renovation
 
   --- bloque «target_enc» (1 términos) ---
-     +0.369790 × target_enc__district
+     +0.258034 × target_enc__district
 
   --- bloque «time» (8 términos) ---
-     -0.071579 × time__pca0
-     +0.009822 × time__pca1
-     -0.022898 × time__pca2
-     +0.013974 × time__pca3
-     +0.018354 × time__pca4
-     +0.010050 × time__pca5
-     -0.009050 × time__pca6
-     -0.003726 × time__pca7
+     -0.071850 × time__pca0
+     +0.009881 × time__pca1
+     -0.023446 × time__pca2
+     +0.013893 × time__pca3
+     +0.019175 × time__pca4
+     +0.010570 × time__pca5
+     -0.009434 × time__pca6
+     -0.003555 × time__pca7
 
 Retransformación a RUB (corrección de Duan):
-  renta_RUB = exp(ŷ_log) × S − 1,   con S = 1.002622
+  renta_RUB = exp(ŷ_log) × S − 1,   con S = 1.003500
 
 Lectura de efectos (solo bloques numeric/onehot; ver coeficientes.csv):
   efecto_pct_por_unidad = (exp(coef/escala) − 1) × 100  → % de cambio de la renta por unidad

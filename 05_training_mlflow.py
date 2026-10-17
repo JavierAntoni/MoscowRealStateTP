@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 ===============================================================================
 05_training_mlflow.py — Paso 5 · Entrenamiento final + tracking con MLflow
@@ -674,15 +672,34 @@ def build_diagnostic_md(
         f"skew {diag['valid_resid_log_skew']:.3f}, "
         f"kurtosis {diag['valid_resid_log_kurtosis']:.3f} (valid)."
     )
-    lines.append(
-        f"- Q-Q: desviación máxima |z| = {diag['valid_resid_log_max_abs_z']:.2f} (valid), "
-        f"{diag.get('test_resid_log_max_abs_z', float('nan')):.2f} (test). "
-        "Valores altos confirman las colas pesadas observadas en la etapa 04."
-    )
-    lines.append(
-        f"- Kurtosis > 0 implica colas más pesadas que una normal en escala log: "
-        f"el Q-Q se separa en los extremos (patrón previo: colas pesadas).\n"
-    )
+    kurt_v = diag["valid_resid_log_kurtosis"]
+    kurt_t = diag.get("test_resid_log_kurtosis", float("nan"))
+    zmax_v = diag["valid_resid_log_max_abs_z"]
+    zmax_t = diag.get("test_resid_log_max_abs_z", float("nan"))
+    zmax = max(zmax_v, zmax_t if np.isfinite(zmax_t) else 0.0)
+    qq_note = ("Valores >= 4 indican outliers o colas pesadas en el Q-Q."
+               if zmax >= 4.0 else "Ningún residuo supera |z| = 4: sin outliers extremos en el Q-Q.")
+    lines.append(f"- Q-Q: desviación máxima |z| = {zmax_v:.2f} (valid), {zmax_t:.2f} (test). {qq_note}")
+
+    def _kurt_word(k: float) -> str:
+        if not np.isfinite(k):
+            return "n/d"
+        if k > 0.5:
+            return "colas más pesadas que la normal"
+        if k < -0.5:
+            return "colas más ligeras que la normal"
+        return "colas cercanas a la normal"
+
+    lines.append(f"- Exceso de curtosis: valid {kurt_v:.3f} ({_kurt_word(kurt_v)}), "
+                 f"test {kurt_t:.3f} ({_kurt_word(kurt_t)}).")
+    bias_v = diag["valid_resid_log_mean"]
+    bias_t = diag.get("test_resid_log_mean", float("nan"))
+    drift_note = (" Sesgo positivo creciente tras el corte de train: deriva de mercado (el spline "
+                  "temporal mantiene constante el último nivel); `--fit-on train_valid` con el "
+                  "preprocesador train+valid la reduce."
+                  if fit_set == "train" and np.isfinite(bias_t) and bias_t > 0.01 else "")
+    lines.append(f"- Sesgo medio en log (real − predicho): valid {bias_v:+.4f}, test {bias_t:+.4f}."
+                 f"{drift_note}\n")
 
     lines.append("## Escala RUB (impacto de negocio)")
     lines.append("- " + _hetero_sentence(
@@ -741,20 +758,33 @@ def build_diagnostic_md(
     return "\n".join(lines)
 
 
-def load_prev_valid_diagnostics(path: Path) -> Optional[Dict[str, float]]:
-    """Mejor esfuerzo: diagnosticar reports/predictions_valid.csv de la etapa 04."""
+def load_prev_valid_diagnostics(path: Path, family: Optional[str] = None) -> Optional[Dict[str, float]]:
+    """Mejor esfuerzo: diagnosticar reports/predictions_valid.csv de la etapa 04.
+
+    La etapa 04 guarda y_true_rub / y_true_log y, por modelo, <Modelo>__pred_log y
+    <Modelo>__pred_rub_smeared. Se usa el par en RUB del modelo pedido; el respaldo por
+    heurística se descarta si real y predicho están en escalas distintas (antes comparaba
+    y_true_rub con <Modelo>__pred_log y daba MAPE ~ 99.97 %)."""
     try:
         df = pd.read_csv(path)
     except Exception:  # noqa: BLE001
         return None
-    real_cols = [c for c in df.columns if any(t in c.lower()
-                 for t in ("real", "true", "actual", "observ"))]
-    pred_cols = [c for c in df.columns if any(t in c.lower()
-                 for t in ("pred", "yhat", "y_hat", "estim"))]
-    if not real_cols or not pred_cols:
-        return None
-    y = pd.to_numeric(df[real_cols[0]], errors="coerce").to_numpy()
-    p = pd.to_numeric(df[pred_cols[0]], errors="coerce").to_numpy()
+    real_col = pred_col = None
+    if family and "y_true_rub" in df.columns and f"{family}__pred_rub_smeared" in df.columns:
+        real_col, pred_col = "y_true_rub", f"{family}__pred_rub_smeared"
+    else:
+        real_cols = [c for c in df.columns if any(t in c.lower()
+                     for t in ("real", "true", "actual", "observ"))]
+        pred_cols = [c for c in df.columns if any(t in c.lower()
+                     for t in ("pred", "yhat", "y_hat", "estim"))]
+        if not real_cols or not pred_cols:
+            return None
+        real_col, pred_col = real_cols[0], pred_cols[0]
+    y = pd.to_numeric(df[real_col], errors="coerce").to_numpy()
+    p = pd.to_numeric(df[pred_col], errors="coerce").to_numpy()
+    _my, _mp = float(np.nanmedian(np.abs(y))), float(np.nanmedian(np.abs(p)))
+    if _my <= 0 or _mp <= 0 or abs(np.log10(_my / _mp)) > 1.0:
+        return None     # escalas incompatibles (p. ej. RUB vs log): mejor sin comparación que una falsa
     mask = np.isfinite(y) & np.isfinite(p)
     y, p = y[mask], p[mask]
     if y.size < 20:
@@ -999,6 +1029,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             raise FileNotFoundError(
                 f"Falta {required}. Ejecuta 03_preprocessing.py y 04_model_selection.py."
             )
+    # Con --fit-on train_valid se usa el preprocesador ajustado con train+valid (si lo escribió
+    # 03_preprocessing.py v5): sin él, el spline temporal sigue congelado en el último día de train
+    # y la deriva de mercado de valid/test queda sin corregir (solo se corrige en parte).
+    train_only_preprocessor_path = preprocessor_path
+    preprocessor_fit_set = "train"
+    if args.fit_on == "train_valid":
+        tv_path = artifacts_dir / "preprocessor_03_trainvalid.joblib"
+        if tv_path.exists():
+            preprocessor_path = tv_path
+            preprocessor_fit_set = "train_valid"
+            LOGGER.info("Preprocesador ajustado con train+valid: %s", tv_path)
+        else:
+            LOGGER.warning(
+                "--fit-on train_valid pero falta %s: se usa el preprocesador ajustado solo con "
+                "train (el modelo sí se reajusta con train+valid, pero la deriva temporal se "
+                "corrige solo en parte). Re-ejecuta 03_preprocessing.py (v5).", tv_path)
     preprocessor = joblib.load(preprocessor_path)
     bundle = load_selection_bundle(bundle_path)
     winner_est_04 = bundle["estimator"]
@@ -1095,7 +1141,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     for fig_name, fig in figures.items():
         save_figure_atomic(fig, figures_dir / f"{fig_name}.png")
 
-    prev_diag = load_prev_valid_diagnostics(reports_dir / "predictions_valid.csv")
+    prev_diag = load_prev_valid_diagnostics(reports_dir / "predictions_valid.csv", family)
     diag_md = build_diagnostic_md(metrics, family, smearing_fit, args.fit_on, prev_diag)
     atomic_write_text(reports_dir / "diagnostico_residuos.md", diag_md)
     atomic_write_json(reports_dir / "residual_diagnostics.json", metrics)
@@ -1150,6 +1196,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "target": TARGET_LOG,
         "proyecto": "alquileres-moscu",
         "fit_set": args.fit_on,
+        "preprocessor_fit_set": preprocessor_fit_set,
         "metrica_seleccion": args.metric,
         "seed": str(seed),
     }
@@ -1167,6 +1214,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "n_features_transformed": int(n_features_transformed),
         "random_state": seed,
         "fit_set": args.fit_on,
+        "preprocessor_fit_set": preprocessor_fit_set,
         "metrica_seleccion": args.metric,
         "y_scale_detectada": y_scale,
         "feature_mode": fit_mode,
@@ -1191,6 +1239,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         (reports_dir / "residual_diagnostics.json", "reports"),
         (reports_dir / "diagnostico_residuos.md", "reports"),
     ]
+
+    if train_only_preprocessor_path != preprocessor_path:
+        winner_artifacts.append((train_only_preprocessor_path, "model_artifacts"))
 
     run_id = log_mlflow_run(
         run_name=f"paso05-{family.lower()}-{args.fit_on}",

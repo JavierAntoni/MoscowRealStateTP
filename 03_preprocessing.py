@@ -33,8 +33,31 @@ Cambios v3 (multicolinealidad; ver reports/multicollinearity_report.md):
      de funciones, sin pérdida de información) -> desaparece el VIF interno de las bases B-spline.
   4. --legacy-features reproduce el diseño anterior solo para comparar.
 
+Cambios v4 (cola izquierda del QQ-plot; ver diagnóstico en el reporte JSON, "district_effect"):
+  Causa medida: la cola (z hasta -4.8) NO viene de metro_distance_min anómalo (el 67 % de las filas
+  supera 50 min y es coherente con la distancia al centro) sino de un efecto de distrito mal codificado:
+  el TargetEncoder clásico codifica la media de log(renta) del distrito, que mezcla composición
+  (superficie, tipo de edificio, ubicación) con el efecto propio del distrito; el modelo lineal no puede
+  separarlas y sobrepredice sistemáticamente distritos como Chertanovo Yuzhnoye (sesgo -0.18 en log,
+  ya presente en train). Corrección: el TargetEncoder de `district` se ajusta con el objetivo
+  AJUSTADO por covariables (log-renta menos la parte explicada por las demás features, estimada
+  conjuntamente con el distrito y con validación cruzada dentro de train). Solo cambia el objetivo
+  con el que se ajusta ese encoder: no se elimina ninguna fila, no se toca valid/test, el modelo sigue
+  prediciendo log1p(renta), y el preprocesador resultante es un ColumnTransformer estándar de sklearn
+  (mismos 57 nombres de columnas, sin clases propias). --no-district-adjust reproduce la v3.
+
+Cambios v5 (deriva temporal en el modelo final):
+  valid y test caen enteros DESPUÉS del último día de train; con extrapolation="constant" el spline
+  temporal congela el nivel de mercado del corte y aparece un sesgo positivo que crece ~0.0016
+  log/mes (valid +0.013, test +0.023). No se corrige con otra extrapolación (probadas, empeoran);
+  se corrige reajustando con datos recientes. Por eso este script escribe, ADEMÁS de los artefactos
+  de siempre (sin cambios), artifacts/preprocessor_03_trainvalid.joblib: el mismo preprocesador
+  (mismos 57 nombres de columna) ajustado con train+valid. 05_training_mlflow.py lo usa con
+  `--fit-on train_valid`. Los splits y X_*/y_* no cambian; test no interviene en ningún ajuste.
+  --no-trainvalid-preprocessor lo omite.
+
 Uso: python 03_preprocessing.py [--strict-hash] [--baseline] [--exclude-metro-distance]
-         [--train-frac 0.80 --valid-frac 0.10 | --fixed-dates]
+         [--no-district-adjust] [--no-trainvalid-preprocessor] [--train-frac 0.80 --valid-frac 0.10 | --fixed-dates]
 """
 from __future__ import annotations
 
@@ -52,6 +75,8 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
+from sklearn.linear_model import Ridge
+from sklearn.model_selection import KFold
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import (
     OneHotEncoder,
@@ -98,6 +123,10 @@ class Config:
     time_mode: str | None = "spline"
     # Spline sobre total_area
     area_spline: bool = True
+    # v4: ajustar el TargetEncoder de district con el objetivo ajustado por covariables (ver docstring)
+    district_adjust: bool = True
+    district_adjust_alpha: float = 1.0   # Ridge del ajuste conjunto (covariables + distrito)
+    district_adjust_folds: int = 5
 
 
 # Columnas por rol (según EDA etapa 02, §7)
@@ -375,6 +404,59 @@ def _build_preprocessor_legacy(features: dict[str, list]) -> ColumnTransformer:
 
 
 # --------------------------------------------------------------------------- #
+# 3b. Objetivo ajustado para el TargetEncoder de district (v4)                #
+# --------------------------------------------------------------------------- #
+def district_adjusted_target(X_train: pd.DataFrame, y_train: pd.Series, features: dict[str, list],
+                             alpha: float = 1.0, n_folds: int = 5) -> tuple[pd.Series, dict]:
+    """Devuelve y_train - (parte explicada por las covariables NO-distrito), usando solo TRAIN.
+
+    El efecto de distrito se estima junto con las covariables (Ridge sobre [covariables + dummies de
+    distrito]); así los coeficientes de lat/lon/to_center_km no absorben el efecto del distrito y la
+    media por distrito del residuo es el efecto *neto* del distrito. Se calcula fuera de muestra
+    (KFold dentro de train) para que el TargetEncoder no vea residuos ya sobreajustados.
+    Solo se usa como `y` al ajustar el preprocesador (el único paso que consume y es el
+    TargetEncoder); el modelo final sigue entrenándose con log1p(renta) sin modificar."""
+    cov_feats = {**features, "target_enc": []}
+    oof_cov = np.full(len(X_train), np.nan)
+    for tr_idx, te_idx in KFold(n_folds, shuffle=True, random_state=RANDOM_STATE).split(X_train):
+        pre = build_preprocessor(cov_feats)
+        pre.transformers = [t for t in pre.transformers if t[0] != "target_enc"]  # solo covariables
+        oh = OneHotEncoder(handle_unknown="ignore", sparse_output=False)
+        Xa, Xb = X_train.iloc[tr_idx], X_train.iloc[te_idx]
+        Ca = pre.fit_transform(Xa)
+        Da = oh.fit_transform(Xa[features["target_enc"]])
+        model = Ridge(alpha=alpha).fit(np.c_[Ca, Da], y_train.iloc[tr_idx])
+        # parte NO-distrito de la predicción fuera de muestra
+        oof_cov[te_idx] = pre.transform(Xb) @ model.coef_[:Ca.shape[1]] + model.intercept_
+    assert np.isfinite(oof_cov).all(), "NaN en el ajuste por covariables"
+    y_adj = y_train - oof_cov
+    info = {"metodo": f"Ridge(alpha={alpha}) conjunto covariables+distrito, KFold({n_folds}) dentro de train",
+            "y_adj_std": float(y_adj.std()), "y_log_std": float(y_train.std())}
+    return y_adj, info
+
+def fit_trainvalid_preprocessor(X: dict, y_log: dict, features: dict[str, list], cfg: Config,
+                                expected_names: list[str]) -> dict:
+    """Preprocesador de despliegue: mismo diseño, ajustado con train+valid (nunca con test).
+    Incluye el objetivo ajustado del TargetEncoder de district (v4) recalculado con train+valid."""
+    X_tv = pd.concat([X["train"], X["valid"]])
+    y_tv = pd.concat([y_log["train"], y_log["valid"]])
+    y_fit = y_tv
+    if cfg.district_adjust and features["target_enc"]:
+        y_fit, _ = district_adjusted_target(X_tv, y_tv, features,
+                                            cfg.district_adjust_alpha, cfg.district_adjust_folds)
+    pre = build_preprocessor(features)
+    A_tv = pre.fit_transform(X_tv, y_fit)
+    names = list(pre.get_feature_names_out())
+    assert names == expected_names, "El preprocesador train+valid cambió los nombres de columna"
+    assert np.isfinite(A_tv).all(), "NaN/Inf en la matriz train+valid"
+    assert np.isfinite(pre.transform(X["test"])).all(), "NaN/Inf en test con el preprocesador train+valid"
+    path = cfg.artifact_dir / "preprocessor_03_trainvalid.joblib"
+    joblib.dump(pre, path)
+    return {"activo": True, "path": str(path), "n_filas_ajuste": int(len(X_tv)),
+            "n_features": len(names)}
+
+
+# --------------------------------------------------------------------------- #
 # 4. Main                                                                     #
 # --------------------------------------------------------------------------- #
 def main() -> None:
@@ -387,6 +469,10 @@ def main() -> None:
                         help="Reproduce el preprocesamiento v1 (sin tiempo, sin spline de área, sin metro)")
     parser.add_argument("--legacy-features", action="store_true",
                         help="Diseño anterior (v2, con dependencias exactas); solo para comparar antes/después")
+    parser.add_argument("--no-district-adjust", action="store_true",
+                        help="Desactiva el objetivo ajustado del TargetEncoder de district (reproduce v3)")
+    parser.add_argument("--no-trainvalid-preprocessor", action="store_true",
+                        help="No escribir artifacts/preprocessor_03_trainvalid.joblib (v5)")
     parser.add_argument("--train-frac", type=float, default=0.80,
                         help="Fracción de filas para train (split cronológico). Default 0.80")
     parser.add_argument("--valid-frac", type=float, default=0.10,
@@ -399,10 +485,12 @@ def main() -> None:
         split_mode="proportional", train_frac=args.train_frac, valid_frac=args.valid_frac)
     if args.baseline:
         cfg = Config(include_metro_distance=False, time_mode=None, area_spline=False,
-                     legacy_features=args.legacy_features, **split_kw)
+                     legacy_features=args.legacy_features,
+                     district_adjust=not args.no_district_adjust, **split_kw)
     else:
         cfg = Config(include_metro_distance=not args.exclude_metro_distance,
-                     legacy_features=args.legacy_features, **split_kw)
+                     legacy_features=args.legacy_features,
+                     district_adjust=not args.no_district_adjust, **split_kw)
     cfg.artifact_dir.mkdir(parents=True, exist_ok=True)
     cfg.report_dir.mkdir(parents=True, exist_ok=True)
 
@@ -440,7 +528,16 @@ def main() -> None:
     # El TargetEncoder se ajusta con el target en escala log (objetivo del modelo)
     # fit_transform en train aplica el cross-fitting interno del TargetEncoder; llamar a
     # .transform(train) después usaría codificaciones ajustadas con su propio target.
-    Xt = {"train": preprocessor.fit_transform(X["train"], y_log["train"])}
+    # v4: el único paso de preprocessor que consume `y` es el TargetEncoder de district; se le pasa el
+    # objetivo ajustado por covariables (calculado solo con train). El modelo sigue usando y_log.
+    de_info = {"activo": False}
+    y_fit = y_log["train"]
+    if cfg.district_adjust and feature_lists["target_enc"]:
+        y_fit, de_info = district_adjusted_target(X["train"], y_log["train"], feature_lists,
+                                                  cfg.district_adjust_alpha, cfg.district_adjust_folds)
+        de_info["activo"] = True
+        print(f"  Objetivo ajustado para TE de district: std {de_info['y_log_std']:.3f} -> {de_info['y_adj_std']:.3f}")
+    Xt = {"train": preprocessor.fit_transform(X["train"], y_fit)}
     Xt.update({name: preprocessor.transform(X[name]) for name in ("valid", "test")})
     for name, arr in Xt.items():
         assert np.isfinite(arr if isinstance(arr, np.ndarray) else arr.toarray()).all(), \
@@ -456,6 +553,13 @@ def main() -> None:
         atomic_write_df(pd.DataFrame({cfg.target: y[name], "log1p_target": y_log[name]}),
                         cfg.out_dir / f"y_{name}{out_ext}")
     joblib.dump(preprocessor, cfg.artifact_dir / "preprocessor_03.joblib")
+
+    # v5: preprocesador de despliegue (train+valid) para 05_training_mlflow.py --fit-on train_valid
+    tv_info = {"activo": False}
+    if not args.no_trainvalid_preprocessor:
+        tv_info = fit_trainvalid_preprocessor(X, y_log, feature_lists, cfg, feature_names)
+        tv_info["fecha_max_ajuste"] = str(splits["valid"]["date_posted"].max().date())
+        print(f"  Preprocesador train+valid: {tv_info['n_filas_ajuste']} filas -> {tv_info['path']}")
 
     report = {
         "etapa": "03_preprocessing",
@@ -492,6 +596,8 @@ def main() -> None:
             } for name, part in splits.items()
         },
         "multicolinealidad_train": design_diagnostics(Xt["train"], feature_names),
+        "district_effect": de_info,
+        "preprocesador_trainvalid": tv_info,
         "feature_names_out": feature_names,
         "n_features_out": len(feature_names),
         "building_age_missing_por_split": {
