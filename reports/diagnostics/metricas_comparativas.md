@@ -2,7 +2,7 @@
 
 Split: train n=16012 (80.1 %) / valid n=1995 (10.0 %) / test n=1993 (10.0 %)
 
-Modelo ajustado SOLO con *train*; *valid* y *test* son datos no vistos (el 05 reentrena con train+valid, por eso sus cifras de valid/test pueden diferir ligeramente).
+Conjunto de ajuste en este entrenamiento: `train`.
 
 ## 1. Métricas por partición
 
@@ -14,7 +14,7 @@ Modelo ajustado SOLO con *train*; *valid* y *test* son datos no vistos (el 05 re
 | MedAE_log | 0.0588 | 0.0583 | 0.0640 |
 | R2_log | 0.9763 | 0.9749 | 0.9731 |
 | R2_ajustado_log | 0.9762 | 0.9741 | 0.9723 |
-| Sesgo_log (media real-pred) | 9.377e-16 | 0.0126 | 0.0233 |
+| Sesgo_log (media real-pred) | 9.819e-16 | 0.0126 | 0.0233 |
 | Desv_residuos_log | 0.0836 | 0.0847 | 0.0848 |
 | Asimetria_residuos | -0.0239 | -0.0847 | -0.0317 |
 | Exceso_curtosis_residuos | -0.2625 | -0.1796 | -0.4619 |

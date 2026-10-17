@@ -1,7 +1,7 @@
 {
   "experimento": "primer parcial",
   "tracking_uri": "file:./mlruns",
-  "run_ganador": "bfc12a150498496c8c7db7fdd4c1f656",
+  "run_ganador": "67c728b8f66241dbb22d629e1f7779a9",
   "modelo": "LinearRegression",
   "fit_set": "train",
   "smearing_factor_S": 1.003500389388888,
@@ -11,5 +11,29 @@
   "test_rmse_log": 0.0879056350116713,
   "test_rmse_rub_smeared": 5533.00193153021,
   "test_mape_rub": 7.0110290522709455,
-  "test_evaluaciones": 1
+  "test_evaluaciones": 1,
+  "diagnostics_dir": "reports\\diagnostics",
+  "archivos_diagnostics_06": [
+    "reports\\diagnostics\\metricas_comparativas.csv",
+    "reports\\diagnostics\\metricas_comparativas.md",
+    "reports\\diagnostics\\vif_variables.csv",
+    "reports\\diagnostics\\coeficientes_ganador.csv",
+    "reports\\diagnostics\\coeficientes_ridge_companero.csv",
+    "reports\\diagnostics\\formula_ganadora.txt",
+    "reports\\diagnostics\\01_histograma_residuos_valid_vs_test.png",
+    "reports\\diagnostics\\02_qqplot_valid_vs_test.png",
+    "reports\\diagnostics\\03_scale_location_valid_vs_test.png",
+    "reports\\diagnostics\\04_residuo_vs_ajustado_valid_vs_test.png",
+    "reports\\diagnostics\\05_real_vs_predicho_valid_vs_test.png",
+    "reports\\diagnostics\\06_residuos_en_el_tiempo_valid_vs_test.png",
+    "reports\\diagnostics\\07_curva_aprendizaje_estilo_original.png",
+    "reports\\diagnostics\\07b_curva_aprendizaje_fuera_de_tiempo.png",
+    "reports\\diagnostics\\08_coeficientes_top20.png",
+    "reports\\diagnostics\\09_vif_todas_las_variables.png"
+  ],
+  "archivos_ablation_06": [
+    "reports\\ablation_report.json",
+    "reports\\ablation_report.md",
+    "reports\\figures\\07_before_after.png"
+  ]
 }
