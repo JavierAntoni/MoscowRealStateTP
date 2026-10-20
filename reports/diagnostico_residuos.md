@@ -3,7 +3,7 @@
 - Modelo reentrenado: **LinearRegression** (allowlist lineal).
 - Conjunto de ajuste: `train`.
 - Smearing de Duan: `S = 1.003500`.
-- Fecha (UTC): 2026-10-17T22:23:00+00:00.
+- Fecha (UTC): 2026-10-20T12:31:45+00:00.
 
 ## Escala log (homocedasticidad)
 - Residuos log — media 0.0126, std 0.0847, skew -0.085, kurtosis -0.177 (valid).

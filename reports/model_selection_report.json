@@ -1,6 +1,6 @@
 {
   "etapa": "04_model_selection",
-  "fecha": "2026-10-17T18:43:03",
+  "fecha": "2026-10-20T09:30:50",
   "familia_permitida": [
     "ElasticNet",
     "HuberRegressor",

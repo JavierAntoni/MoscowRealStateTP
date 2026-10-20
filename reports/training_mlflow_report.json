@@ -1,7 +1,7 @@
 {
   "experimento": "primer parcial",
   "tracking_uri": "file:./mlruns",
-  "run_ganador": "67c728b8f66241dbb22d629e1f7779a9",
+  "run_ganador": "e75c711da1534ab7a1f88a1e365771bb",
   "modelo": "LinearRegression",
   "fit_set": "train",
   "smearing_factor_S": 1.003500389388888,

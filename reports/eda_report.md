@@ -2,7 +2,7 @@
 
 | Metadato | Valor |
 |---|---|
-| Fecha de generación | `2026-10-16 21:38:05` |
+| Fecha de generación | `2026-10-20 09:29:25` |
 | Archivo analizado (solo lectura) | `data\rentals_clean.csv` |
 | SHA-256 verificado (inmutable) | `e43378a0de55cdc2320b76f273ef47e1158a41e7fb0d06da0dc34666a5cc1a71` |
 | Dimensiones del dataset | `20000` filas × `23` columnas |
